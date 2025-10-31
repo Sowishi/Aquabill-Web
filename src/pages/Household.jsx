@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../../firebase';
 
 function Household() {
   const [showModal, setShowModal] = useState(false);
@@ -21,6 +22,8 @@ function Household() {
     age: '',
     meterNumber: ''
   });
+  const [profilePicFile, setProfilePicFile] = useState(null);
+  const [profilePicPreview, setProfilePicPreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -187,6 +190,47 @@ function Household() {
     }
   };
 
+  const handleProfilePicChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, profilePic: 'Please select an image file' }));
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, profilePic: 'Image size should be less than 5MB' }));
+        return;
+      }
+      setProfilePicFile(file);
+      setProfilePicPreview(URL.createObjectURL(file));
+      setErrors(prev => ({ ...prev, profilePic: '' }));
+    }
+  };
+
+  const uploadProfilePicture = async (file, userId) => {
+    try {
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `profile-pics/${userId}-${Date.now()}.${fileExtension}`;
+      const storageRef = ref(storage, fileName);
+      
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading profile picture:', error);
+      throw error;
+    }
+  };
+
+  const generateDefaultAvatar = (fullName, gender) => {
+    // Use username-based avatar for personalization
+    const formattedName = fullName.replace(/\s+/g, '+');
+    return `https://avatar.iran.liara.run/username?username=${formattedName}`;
+  };
+
   const handleOpenCreateModal = () => {
     setIsEditMode(false);
     setEditingUserId(null);
@@ -198,6 +242,8 @@ function Household() {
       age: '',
       meterNumber: ''
     });
+    setProfilePicFile(null);
+    setProfilePicPreview(null);
     setErrors({});
     setSuccessMessage('');
     setErrorMessage('');
@@ -215,6 +261,8 @@ function Household() {
       age: user.age.toString(),
       meterNumber: user.meterNumber
     });
+    setProfilePicFile(null);
+    setProfilePicPreview(user.profilePicUrl || null);
     setErrors({});
     setSuccessMessage('');
     setErrorMessage('');
@@ -325,9 +373,15 @@ function Household() {
           }
         }
 
+        // Handle profile picture
+        let profilePicUrl = profilePicPreview; // Keep existing if no new upload
+        if (profilePicFile) {
+          profilePicUrl = await uploadProfilePicture(profilePicFile, editingUserId);
+        }
+
         // Update user data in Firestore
         const userRef = doc(db, 'users', editingUserId);
-        await updateDoc(userRef, {
+        const updateData = {
           fullName: formData.fullName,
           email: formData.email,
           contactNumber: formData.contactNumber,
@@ -335,7 +389,13 @@ function Household() {
           age: parseInt(formData.age),
           meterNumber: formData.meterNumber,
           updatedAt: new Date().toISOString()
-        });
+        };
+
+        if (profilePicUrl) {
+          updateData.profilePicUrl = profilePicUrl;
+        }
+
+        await updateDoc(userRef, updateData);
 
         setSuccessMessage('User updated successfully!');
 
@@ -348,6 +408,8 @@ function Household() {
           age: '',
           meterNumber: ''
         });
+        setProfilePicFile(null);
+        setProfilePicPreview(null);
 
         // Refresh users list
         fetchUsers();
@@ -375,21 +437,36 @@ function Household() {
           return;
         }
 
-        // Save user data to Firestore
-        await addDoc(collection(db, 'users'), {
+        // Create user document first to get the ID
+        const newUserRef = await addDoc(collection(db, 'users'), {
           fullName: formData.fullName,
           email: formData.email,
           contactNumber: formData.contactNumber,
           gender: formData.gender,
           age: parseInt(formData.age),
           meterNumber: formData.meterNumber,
-          temporaryPassword: tempPassword,
+          password: tempPassword,
           passwordChanged: false,
           role: 'resident',
           paymentStatus: 'unpaid',
           isArchived: false,
           createdAt: new Date().toISOString(),
           status: 'active'
+        });
+
+        // Handle profile picture
+        let profilePicUrl;
+        if (profilePicFile) {
+          // Upload custom profile picture
+          profilePicUrl = await uploadProfilePicture(profilePicFile, newUserRef.id);
+        } else {
+          // Use default avatar from API
+          profilePicUrl = generateDefaultAvatar(formData.fullName, formData.gender);
+        }
+
+        // Update user with profile picture URL
+        await updateDoc(doc(db, 'users', newUserRef.id), {
+          profilePicUrl: profilePicUrl
         });
 
         // Send email with temporary password
@@ -418,15 +495,14 @@ function Household() {
           age: '',
           meterNumber: ''
         });
+        setProfilePicFile(null);
+        setProfilePicPreview(null);
 
         // Refresh users list
         fetchUsers();
 
-        // Close modal after 5 seconds
-        setTimeout(() => {
-          setShowModal(false);
-          setSuccessMessage('');
-        }, 5000);
+        setShowModal(false);
+        setSuccessMessage('');
       }
 
     } catch (error) {
@@ -580,19 +656,28 @@ function Household() {
             <div className="block lg:hidden space-y-4">
               {filteredUsers.map((user) => (
                 <div key={user.id} className={`border rounded-lg p-4 ${user.isArchived ? 'bg-gray-50' : 'bg-white'}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 text-base">
-                        {user.fullName}
-                        {user.isArchived && (
-                          <span className="ml-2 text-xs text-gray-500">(Archived)</span>
-                        )}
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">{user.email}</p>
+                  <div className="flex gap-3 mb-3">
+                    <img 
+                      src={user.profilePicUrl || generateDefaultAvatar(user.fullName, user.gender)} 
+                      alt={user.fullName}
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 text-base truncate">
+                            {user.fullName}
+                            {user.isArchived && (
+                              <span className="ml-2 text-xs text-gray-500">(Archived)</span>
+                            )}
+                          </h3>
+                          <p className="text-sm text-gray-600 mt-1 truncate">{user.email}</p>
+                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex-shrink-0">
+                          {user.role || 'resident'}
+                        </span>
+                      </div>
                     </div>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {user.role || 'resident'}
-                    </span>
                   </div>
                   
                   <div className="space-y-2 text-sm">
@@ -692,11 +777,22 @@ function Household() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className={`hover:bg-gray-50 ${user.isArchived ? 'bg-gray-50' : ''}`}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {user.fullName}
-                      {user.isArchived && (
-                        <span className="ml-2 text-xs text-gray-500">(Archived)</span>
-                      )}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <img 
+                          src={user.profilePicUrl || generateDefaultAvatar(user.fullName, user.gender)} 
+                          alt={user.fullName}
+                          className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                        />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {user.fullName}
+                          </div>
+                          {user.isArchived && (
+                            <div className="text-xs text-gray-500">(Archived)</div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.email}
@@ -789,6 +885,8 @@ function Household() {
                     setErrorMessage('');
                     setIsEditMode(false);
                     setEditingUserId(null);
+                    setProfilePicFile(null);
+                    setProfilePicPreview(null);
                   }}
                   className="text-gray-400 hover:text-gray-600 text-2xl"
                   disabled={loading}
@@ -812,6 +910,67 @@ function Household() {
                   {errorMessage}
                 </div>
               )}
+
+              {/* Profile Picture */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profile Picture
+                </label>
+                <div className="flex items-center gap-4">
+                  {profilePicPreview ? (
+                    <div className="relative">
+                      <img 
+                        src={profilePicPreview} 
+                        alt="Profile preview" 
+                        className="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover border-2 border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfilePicFile(null);
+                          setProfilePicPreview(null);
+                        }}
+                        className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                        disabled={loading}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <label className="cursor-pointer">
+                      <span className="inline-block bg-blue-50 text-blue-700 hover:bg-blue-100 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        {profilePicPreview ? 'Change Photo' : 'Upload Photo'}
+                      </span>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={handleProfilePicChange}
+                        className="hidden"
+                        disabled={loading}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {profilePicFile 
+                        ? 'Custom photo will be uploaded' 
+                        : isEditMode && profilePicPreview
+                        ? 'Current profile picture'
+                        : 'Default avatar will be used if not uploaded'}
+                    </p>
+                    {errors.profilePic && (
+                      <p className="text-red-500 text-xs mt-1">{errors.profilePic}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
 
               {/* Full Name */}
               <div>
@@ -970,6 +1129,8 @@ function Household() {
                     setErrorMessage('');
                     setIsEditMode(false);
                     setEditingUserId(null);
+                    setProfilePicFile(null);
+                    setProfilePicPreview(null);
                   }}
                   disabled={loading}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2.5 md:py-3 px-4 md:px-6 rounded-lg transition-colors duration-200 text-sm md:text-base"
