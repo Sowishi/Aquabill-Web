@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 function Household() {
   const [showModal, setShowModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingUserId, setEditingUserId] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [userToArchive, setUserToArchive] = useState(null);
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all'); // all, paid, unpaid, archived
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -29,12 +30,25 @@ function Household() {
     fetchUsers();
   }, []);
 
-  // Search functionality
+  // Search and Filter functionality
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredUsers(users);
-    } else {
-      const filtered = users.filter(user => {
+    let filtered = users;
+
+    // Apply status filter
+    if (filterStatus === 'paid') {
+      filtered = filtered.filter(user => user.paymentStatus === 'paid');
+    } else if (filterStatus === 'unpaid') {
+      filtered = filtered.filter(user => user.paymentStatus === 'unpaid');
+    } else if (filterStatus === 'archived') {
+      filtered = filtered.filter(user => user.isArchived === true);
+    } else if (filterStatus === 'all') {
+      // Show only non-archived users
+      filtered = filtered.filter(user => !user.isArchived);
+    }
+
+    // Apply search term
+    if (searchTerm.trim() !== '') {
+      filtered = filtered.filter(user => {
         const searchLower = searchTerm.toLowerCase();
         return (
           user.fullName?.toLowerCase().includes(searchLower) ||
@@ -44,9 +58,10 @@ function Household() {
           user.gender?.toLowerCase().includes(searchLower)
         );
       });
-      setFilteredUsers(filtered);
     }
-  }, [searchTerm, users]);
+
+    setFilteredUsers(filtered);
+  }, [searchTerm, filterStatus, users]);
 
   const fetchUsers = async () => {
     try {
@@ -206,28 +221,77 @@ function Household() {
     setShowModal(true);
   };
 
-  const handleOpenDeleteModal = (user) => {
-    setUserToDelete(user);
-    setShowDeleteModal(true);
+  const handleOpenArchiveModal = (user) => {
+    setUserToArchive(user);
+    setShowArchiveModal(true);
   };
 
-  const handleDelete = async () => {
-    if (!userToDelete) return;
+  const handleArchive = async () => {
+    if (!userToArchive) return;
 
     setLoading(true);
     try {
-      await deleteDoc(doc(db, 'users', userToDelete.id));
-      setSuccessMessage(`User "${userToDelete.fullName}" has been deleted successfully.`);
-      setShowDeleteModal(false);
-      setUserToDelete(null);
+      const userRef = doc(db, 'users', userToArchive.id);
+      await updateDoc(userRef, {
+        isArchived: true,
+        archivedAt: new Date().toISOString()
+      });
+      setSuccessMessage(`User "${userToArchive.fullName}" has been archived successfully.`);
+      setShowArchiveModal(false);
+      setUserToArchive(null);
       fetchUsers();
       
       setTimeout(() => {
         setSuccessMessage('');
       }, 3000);
     } catch (error) {
-      console.error('Error deleting user:', error);
-      setErrorMessage('Failed to delete user. ' + error.message);
+      console.error('Error archiving user:', error);
+      setErrorMessage('Failed to archive user. ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestore = async (user) => {
+    setLoading(true);
+    try {
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, {
+        isArchived: false,
+        restoredAt: new Date().toISOString()
+      });
+      setSuccessMessage(`User "${user.fullName}" has been restored successfully.`);
+      fetchUsers();
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Error restoring user:', error);
+      setErrorMessage('Failed to restore user. ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTogglePaymentStatus = async (user) => {
+    setLoading(true);
+    try {
+      const newStatus = user.paymentStatus === 'paid' ? 'unpaid' : 'paid';
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, {
+        paymentStatus: newStatus,
+        paymentStatusUpdatedAt: new Date().toISOString()
+      });
+      setSuccessMessage(`Payment status updated to "${newStatus}" for ${user.fullName}.`);
+      fetchUsers();
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      setErrorMessage('Failed to update payment status. ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -322,6 +386,8 @@ function Household() {
           temporaryPassword: tempPassword,
           passwordChanged: false,
           role: 'resident',
+          paymentStatus: 'unpaid',
+          isArchived: false,
           createdAt: new Date().toISOString(),
           status: 'active'
         });
@@ -406,6 +472,50 @@ function Household() {
           </div>
         )}
 
+        {/* Filter Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setFilterStatus('all')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              filterStatus === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All Active
+          </button>
+          <button
+            onClick={() => setFilterStatus('paid')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              filterStatus === 'paid'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Paid
+          </button>
+          <button
+            onClick={() => setFilterStatus('unpaid')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              filterStatus === 'unpaid'
+                ? 'bg-yellow-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Unpaid
+          </button>
+          <button
+            onClick={() => setFilterStatus('archived')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              filterStatus === 'archived'
+                ? 'bg-gray-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Archived
+          </button>
+        </div>
+
         {/* Search Bar */}
         <div className="relative">
           <input
@@ -478,16 +588,13 @@ function Household() {
                     Contact
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Gender
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Age
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Meter Number
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Payment Status
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -496,21 +603,18 @@ function Household() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                  <tr key={user.id} className={`hover:bg-gray-50 ${user.isArchived ? 'bg-gray-50' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {user.fullName}
+                      {user.isArchived && (
+                        <span className="ml-2 text-xs text-gray-500">(Archived)</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.contactNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.gender}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.age}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.meterNumber}
@@ -520,25 +624,56 @@ function Household() {
                         {user.role || 'resident'}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <button
+                        onClick={() => handleTogglePaymentStatus(user)}
+                        disabled={user.isArchived || loading}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                          user.paymentStatus === 'paid'
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                        } ${user.isArchived ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        title={user.isArchived ? 'Cannot change status for archived users' : 'Click to toggle payment status'}
+                      >
+                        {user.paymentStatus === 'paid' ? '✓ Paid' : '⊘ Unpaid'}
+                      </button>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleOpenEditModal(user)}
-                        className="text-blue-600 hover:text-blue-900 mr-4"
-                        title="Edit user"
-                      >
-                        <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleOpenDeleteModal(user)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete user"
-                      >
-                        <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
+                      {user.isArchived ? (
+                        <button
+                          onClick={() => handleRestore(user)}
+                          disabled={loading}
+                          className="text-green-600 hover:text-green-900"
+                          title="Restore user"
+                        >
+                          <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleOpenEditModal(user)}
+                            disabled={loading}
+                            className="text-blue-600 hover:text-blue-900 mr-3"
+                            title="Edit user"
+                          >
+                            <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleOpenArchiveModal(user)}
+                            disabled={loading}
+                            className="text-gray-600 hover:text-gray-900"
+                            title="Archive user"
+                          >
+                            <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -758,28 +893,28 @@ function Household() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
+      {/* Archive Confirmation Modal */}
+      {showArchiveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
-                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-gray-100 rounded-full mb-4">
+                <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
               </div>
               <h3 className="text-lg font-bold text-gray-900 text-center mb-2">
-                Delete User
+                Archive User
               </h3>
               <p className="text-sm text-gray-500 text-center mb-6">
-                Are you sure you want to delete <span className="font-semibold text-gray-900">{userToDelete?.fullName}</span>? 
-                This action cannot be undone.
+                Are you sure you want to archive <span className="font-semibold text-gray-900">{userToArchive?.fullName}</span>? 
+                You can restore this user later from the Archived filter.
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    setShowDeleteModal(false);
-                    setUserToDelete(null);
+                    setShowArchiveModal(false);
+                    setUserToArchive(null);
                   }}
                   disabled={loading}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
@@ -787,13 +922,13 @@ function Household() {
                   Cancel
                 </button>
                 <button
-                  onClick={handleDelete}
+                  onClick={handleArchive}
                   disabled={loading}
-                  className={`flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 ${
+                  className={`flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 ${
                     loading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  {loading ? 'Deleting...' : 'Delete'}
+                  {loading ? 'Archiving...' : 'Archive'}
                 </button>
               </div>
             </div>
