@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 function DashboardHome() {
@@ -25,8 +25,10 @@ function DashboardHome() {
     try {
       setLoading(true);
 
-      // Fetch users/households data
-      const usersSnapshot = await getDocs(collection(db, 'users'));
+      // Fetch users/households data (only residents, not collectors)
+      const usersRef = collection(db, 'users');
+      const householdsQuery = query(usersRef, where('role', '==', 'resident'));
+      const usersSnapshot = await getDocs(householdsQuery);
       const users = usersSnapshot.docs.map(doc => doc.data());
       
       const totalHouseholds = users.length;
@@ -35,7 +37,9 @@ function DashboardHome() {
       const archivedHouseholds = users.filter(u => u.isArchived === true).length;
 
       // Fetch collectors data
-      const collectorsSnapshot = await getDocs(collection(db, 'collectors'));
+      const collectorsRef = collection(db, 'users');
+      const collectorsQuery = query(collectorsRef, where('role', '==', 'collector'));
+      const collectorsSnapshot = await getDocs(collectorsQuery);
       const collectors = collectorsSnapshot.docs.map(doc => doc.data());
       
       const totalCollectors = collectors.length;

@@ -20,8 +20,7 @@ function Collectors() {
     email: '',
     contactNumber: '',
     gender: '',
-    age: '',
-    meterNumber: ''
+    age: ''
   });
   const [profilePicFile, setProfilePicFile] = useState(null);
   const [profilePicPreview, setProfilePicPreview] = useState(null);
@@ -56,7 +55,6 @@ function Collectors() {
           collector.fullName?.toLowerCase().includes(searchLower) ||
           collector.email?.toLowerCase().includes(searchLower) ||
           collector.contactNumber?.includes(searchTerm) ||
-          collector.meterNumber?.toLowerCase().includes(searchLower) ||
           collector.gender?.toLowerCase().includes(searchLower)
         );
       });
@@ -67,7 +65,9 @@ function Collectors() {
 
   const fetchCollectors = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'collectors'));
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', '==', 'collector'));
+      const querySnapshot = await getDocs(q);
       const collectorsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -128,11 +128,6 @@ function Collectors() {
       newErrors.age = 'Age is required';
     } else if (formData.age < 1 || formData.age > 120) {
       newErrors.age = 'Age must be between 1 and 120';
-    }
-
-    // Meter Number validation
-    if (!formData.meterNumber.trim()) {
-      newErrors.meterNumber = 'Meter number is required';
     }
 
     setErrors(newErrors);
@@ -231,8 +226,7 @@ function Collectors() {
       email: '',
       contactNumber: '',
       gender: '',
-      age: '',
-      meterNumber: ''
+      age: ''
     });
     setProfilePicFile(null);
     setProfilePicPreview(null);
@@ -250,8 +244,7 @@ function Collectors() {
       email: collector.email,
       contactNumber: collector.contactNumber,
       gender: collector.gender,
-      age: collector.age.toString(),
-      meterNumber: collector.meterNumber
+      age: collector.age.toString()
     });
     setProfilePicFile(null);
     setProfilePicPreview(collector.profilePicUrl || null);
@@ -272,7 +265,7 @@ function Collectors() {
 
     setLoading(true);
     try {
-      const collectorRef = doc(db, 'collectors', collectorToChangeStatus.id);
+      const collectorRef = doc(db, 'users', collectorToChangeStatus.id);
       await updateDoc(collectorRef, {
         status: newStatus,
         statusUpdatedAt: new Date().toISOString()
@@ -307,8 +300,8 @@ function Collectors() {
     try {
       if (isEditMode) {
         // UPDATE existing collector
-        const collectorsRef = collection(db, 'collectors');
-        const q = query(collectorsRef, where('email', '==', formData.email));
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', formData.email));
         const querySnapshot = await getDocs(q);
         
         // Check if email exists for a different collector
@@ -328,14 +321,13 @@ function Collectors() {
         }
 
         // Update collector data in Firestore
-        const collectorRef = doc(db, 'collectors', editingCollectorId);
+        const collectorRef = doc(db, 'users', editingCollectorId);
         const updateData = {
           fullName: formData.fullName,
           email: formData.email,
           contactNumber: formData.contactNumber,
           gender: formData.gender,
           age: parseInt(formData.age),
-          meterNumber: formData.meterNumber,
           updatedAt: new Date().toISOString()
         };
 
@@ -353,8 +345,7 @@ function Collectors() {
           email: '',
           contactNumber: '',
           gender: '',
-          age: '',
-          meterNumber: ''
+          age: ''
         });
         setProfilePicFile(null);
         setProfilePicPreview(null);
@@ -375,8 +366,8 @@ function Collectors() {
         const tempPassword = generateTemporaryPassword();
 
         // Check if email already exists in Firestore
-        const collectorsRef = collection(db, 'collectors');
-        const q = query(collectorsRef, where('email', '==', formData.email));
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', formData.email));
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
@@ -386,13 +377,12 @@ function Collectors() {
         }
 
         // Create collector document first to get the ID
-        const newCollectorRef = await addDoc(collection(db, 'collectors'), {
+        const newCollectorRef = await addDoc(collection(db, 'users'), {
           fullName: formData.fullName,
           email: formData.email,
           contactNumber: formData.contactNumber,
           gender: formData.gender,
           age: parseInt(formData.age),
-          meterNumber: formData.meterNumber,
           temporaryPassword: tempPassword,
           passwordChanged: false,
           role: 'collector',
@@ -411,7 +401,7 @@ function Collectors() {
         }
 
         // Update collector with profile picture URL
-        await updateDoc(doc(db, 'collectors', newCollectorRef.id), {
+        await updateDoc(doc(db, 'users', newCollectorRef.id), {
           profilePicUrl: profilePicUrl
         });
 
@@ -438,8 +428,7 @@ function Collectors() {
           email: '',
           contactNumber: '',
           gender: '',
-          age: '',
-          meterNumber: ''
+          age: ''
         });
         setProfilePicFile(null);
         setProfilePicPreview(null);
@@ -628,10 +617,6 @@ function Collectors() {
                       <span className="text-gray-500">Contact:</span>
                       <span className="text-gray-900">{collector.contactNumber}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Meter #:</span>
-                      <span className="text-gray-900">{collector.meterNumber}</span>
-                    </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-500">Status:</span>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -720,9 +705,6 @@ function Collectors() {
                     Contact
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Meter Number
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Role
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -755,9 +737,6 @@ function Collectors() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {collector.contactNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {collector.meterNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
@@ -1034,27 +1013,6 @@ function Collectors() {
                     <p className="text-red-500 text-xs mt-1">{errors.age}</p>
                   )}
                 </div>
-              </div>
-
-              {/* Meter Number */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Meter Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="meterNumber"
-                  value={formData.meterNumber}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.meterNumber ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter meter number"
-                  disabled={loading}
-                />
-                {errors.meterNumber && (
-                  <p className="text-red-500 text-xs mt-1">{errors.meterNumber}</p>
-                )}
               </div>
 
               {/* Form Actions */}

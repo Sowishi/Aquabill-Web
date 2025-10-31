@@ -68,7 +68,9 @@ function Household() {
 
   const fetchUsers = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, 'users'));
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', '==', 'resident'));
+      const querySnapshot = await getDocs(q);
       const usersData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
