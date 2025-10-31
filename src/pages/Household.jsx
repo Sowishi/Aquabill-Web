@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 function Household() {
   const [showModal, setShowModal] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -23,6 +29,25 @@ function Household() {
     fetchUsers();
   }, []);
 
+  // Search functionality
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter(user => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          user.fullName?.toLowerCase().includes(searchLower) ||
+          user.email?.toLowerCase().includes(searchLower) ||
+          user.contactNumber?.includes(searchTerm) ||
+          user.meterNumber?.toLowerCase().includes(searchLower) ||
+          user.gender?.toLowerCase().includes(searchLower)
+        );
+      });
+      setFilteredUsers(filtered);
+    }
+  }, [searchTerm, users]);
+
   const fetchUsers = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, 'users'));
@@ -31,6 +56,7 @@ function Household() {
         ...doc.data()
       }));
       setUsers(usersData);
+      setFilteredUsers(usersData);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -146,6 +172,67 @@ function Household() {
     }
   };
 
+  const handleOpenCreateModal = () => {
+    setIsEditMode(false);
+    setEditingUserId(null);
+    setFormData({
+      fullName: '',
+      email: '',
+      contactNumber: '',
+      gender: '',
+      age: '',
+      meterNumber: ''
+    });
+    setErrors({});
+    setSuccessMessage('');
+    setErrorMessage('');
+    setShowModal(true);
+  };
+
+  const handleOpenEditModal = (user) => {
+    setIsEditMode(true);
+    setEditingUserId(user.id);
+    setFormData({
+      fullName: user.fullName,
+      email: user.email,
+      contactNumber: user.contactNumber,
+      gender: user.gender,
+      age: user.age.toString(),
+      meterNumber: user.meterNumber
+    });
+    setErrors({});
+    setSuccessMessage('');
+    setErrorMessage('');
+    setShowModal(true);
+  };
+
+  const handleOpenDeleteModal = (user) => {
+    setUserToDelete(user);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+
+    setLoading(true);
+    try {
+      await deleteDoc(doc(db, 'users', userToDelete.id));
+      setSuccessMessage(`User "${userToDelete.fullName}" has been deleted successfully.`);
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+      fetchUsers();
+      
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 3000);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      setErrorMessage('Failed to delete user. ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSuccessMessage('');
@@ -158,74 +245,127 @@ function Household() {
     setLoading(true);
 
     try {
-      // Generate temporary password
-      const tempPassword = generateTemporaryPassword();
+      if (isEditMode) {
+        // UPDATE existing user
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', formData.email));
+        const querySnapshot = await getDocs(q);
+        
+        // Check if email exists for a different user
+        if (!querySnapshot.empty) {
+          const existingUser = querySnapshot.docs[0];
+          if (existingUser.id !== editingUserId) {
+            setErrorMessage('This email is already registered to another user.');
+            setLoading(false);
+            return;
+          }
+        }
 
-      // Check if email already exists in Firestore
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', formData.email));
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        setErrorMessage('This email is already registered.');
-        setLoading(false);
-        return;
+        // Update user data in Firestore
+        const userRef = doc(db, 'users', editingUserId);
+        await updateDoc(userRef, {
+          fullName: formData.fullName,
+          email: formData.email,
+          contactNumber: formData.contactNumber,
+          gender: formData.gender,
+          age: parseInt(formData.age),
+          meterNumber: formData.meterNumber,
+          updatedAt: new Date().toISOString()
+        });
+
+        setSuccessMessage('User updated successfully!');
+
+        // Reset form
+        setFormData({
+          fullName: '',
+          email: '',
+          contactNumber: '',
+          gender: '',
+          age: '',
+          meterNumber: ''
+        });
+
+        // Refresh users list
+        fetchUsers();
+
+        // Close modal after 3 seconds
+        setTimeout(() => {
+          setShowModal(false);
+          setSuccessMessage('');
+          setIsEditMode(false);
+          setEditingUserId(null);
+        }, 3000);
+
+      } else {
+        // CREATE new user
+        const tempPassword = generateTemporaryPassword();
+
+        // Check if email already exists in Firestore
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', formData.email));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          setErrorMessage('This email is already registered.');
+          setLoading(false);
+          return;
+        }
+
+        // Save user data to Firestore
+        await addDoc(collection(db, 'users'), {
+          fullName: formData.fullName,
+          email: formData.email,
+          contactNumber: formData.contactNumber,
+          gender: formData.gender,
+          age: parseInt(formData.age),
+          meterNumber: formData.meterNumber,
+          temporaryPassword: tempPassword,
+          passwordChanged: false,
+          role: 'resident',
+          createdAt: new Date().toISOString(),
+          status: 'active'
+        });
+
+        // Send email with temporary password
+        try {
+          await sendTemporaryPasswordEmail(
+            formData.email,
+            formData.fullName,
+            tempPassword
+          );
+          setSuccessMessage(
+            `User created successfully! An email with the temporary password has been sent to ${formData.email}. `
+          );
+        } catch (emailError) {
+          // User created but email failed
+          setSuccessMessage(
+            `User created successfully! However, email sending failed.`
+          );
+        }
+
+        // Reset form
+        setFormData({
+          fullName: '',
+          email: '',
+          contactNumber: '',
+          gender: '',
+          age: '',
+          meterNumber: ''
+        });
+
+        // Refresh users list
+        fetchUsers();
+
+        // Close modal after 5 seconds
+        setTimeout(() => {
+          setShowModal(false);
+          setSuccessMessage('');
+        }, 5000);
       }
-
-      // Save user data to Firestore
-      await addDoc(collection(db, 'users'), {
-        fullName: formData.fullName,
-        email: formData.email,
-        contactNumber: formData.contactNumber,
-        gender: formData.gender,
-        age: parseInt(formData.age),
-        meterNumber: formData.meterNumber,
-        temporaryPassword: tempPassword,
-        passwordChanged: false,
-        role: 'resident',
-        createdAt: new Date().toISOString(),
-        status: 'active'
-      });
-
-      // Send email with temporary password
-      try {
-        await sendTemporaryPasswordEmail(
-          formData.email,
-          formData.fullName,
-          tempPassword
-        );
-        setSuccessMessage(
-          `User created successfully! An email with the temporary password has been sent to ${formData.email}. Temporary password: ${tempPassword}`
-        );
-      } catch (emailError) {
-        // User created but email failed
-        setSuccessMessage(
-          `User created successfully! However, email sending failed. Please note the temporary password: ${tempPassword}`
-        );
-      }
-
-      // Reset form
-      setFormData({
-        fullName: '',
-        email: '',
-        contactNumber: '',
-        gender: '',
-        age: '',
-        meterNumber: ''
-      });
-
-      // Refresh users list
-      fetchUsers();
-
-      // Close modal after 5 seconds
-      setTimeout(() => {
-        setShowModal(false);
-        setSuccessMessage('');
-      }, 5000);
 
     } catch (error) {
-      console.error('Error creating user:', error);
-      let errorMsg = 'Failed to create user. ';
+      console.error('Error saving user:', error);
+      let errorMsg = isEditMode ? 'Failed to update user. ' : 'Failed to create user. ';
       
       if (error.message) {
         errorMsg += error.message;
@@ -240,28 +380,88 @@ function Household() {
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Household Management</h1>
             <p className="text-gray-600">Manage all registered households and their information</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenCreateModal}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
           >
             <span className="text-xl">+</span>
             Create New User
           </button>
         </div>
+
+        {/* Success/Error Messages */}
+        {successMessage && !showModal && (
+          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-4">
+            {successMessage}
+          </div>
+        )}
+        {errorMessage && !showModal && (
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
+            {errorMessage}
+          </div>
+        )}
+
+        {/* Search Bar */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search by name, email, contact, meter number, or gender..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <svg
+            className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Users List */}
       <div className="bg-white rounded-xl shadow-md p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Registered Users</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-800">Registered Users</h2>
+          <p className="text-sm text-gray-500">
+            Showing {filteredUsers.length} of {users.length} users
+          </p>
+        </div>
         {users.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🏠</div>
             <p className="text-gray-500">No users registered yet</p>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">🔍</div>
+            <p className="text-gray-500">No users found matching your search</p>
+            <button
+              onClick={() => setSearchTerm('')}
+              className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Clear search
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -289,10 +489,13 @@ function Household() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Role
                   </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {user.fullName}
@@ -317,6 +520,26 @@ function Household() {
                         {user.role || 'resident'}
                       </span>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={() => handleOpenEditModal(user)}
+                        className="text-blue-600 hover:text-blue-900 mr-4"
+                        title="Edit user"
+                      >
+                        <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleOpenDeleteModal(user)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Delete user"
+                      >
+                        <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -325,19 +548,23 @@ function Household() {
         )}
       </div>
 
-      {/* Create User Modal */}
+      {/* Create/Edit User Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">Create New User</h2>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  {isEditMode ? 'Edit User' : 'Create New User'}
+                </h2>
                 <button
                   onClick={() => {
                     setShowModal(false);
                     setErrors({});
                     setSuccessMessage('');
                     setErrorMessage('');
+                    setIsEditMode(false);
+                    setEditingUserId(null);
                   }}
                   className="text-gray-400 hover:text-gray-600 text-2xl"
                   disabled={loading}
@@ -505,7 +732,10 @@ function Household() {
                     loading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  {loading ? 'Creating User...' : 'Create User'}
+                  {loading 
+                    ? (isEditMode ? 'Updating User...' : 'Creating User...') 
+                    : (isEditMode ? 'Update User' : 'Create User')
+                  }
                 </button>
                 <button
                   type="button"
@@ -514,6 +744,8 @@ function Household() {
                     setErrors({});
                     setSuccessMessage('');
                     setErrorMessage('');
+                    setIsEditMode(false);
+                    setEditingUserId(null);
                   }}
                   disabled={loading}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
@@ -522,6 +754,49 @@ function Household() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 text-center mb-2">
+                Delete User
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                Are you sure you want to delete <span className="font-semibold text-gray-900">{userToDelete?.fullName}</span>? 
+                This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setUserToDelete(null);
+                  }}
+                  disabled={loading}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={loading}
+                  className={`flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 ${
+                    loading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {loading ? 'Deleting...' : 'Delete'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
