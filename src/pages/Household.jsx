@@ -444,39 +444,40 @@ function Household() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
+    <div className="space-y-4 md:space-y-6">
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Household Management</h1>
-            <p className="text-gray-600">Manage all registered households and their information</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">Household Management</h1>
+            <p className="text-sm md:text-base text-gray-600">Manage all registered households and their information</p>
           </div>
           <button
             onClick={handleOpenCreateModal}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors duration-200 flex items-center gap-2"
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 flex items-center justify-center gap-2 whitespace-nowrap"
           >
             <span className="text-xl">+</span>
-            Create New User
+            <span className="hidden sm:inline">Create New User</span>
+            <span className="sm:hidden">New User</span>
           </button>
         </div>
 
         {/* Success/Error Messages */}
         {successMessage && !showModal && (
-          <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-4">
+          <div className="bg-green-50 border border-green-200 text-green-800 px-3 md:px-4 py-2 md:py-3 rounded-lg mb-4 text-sm md:text-base">
             {successMessage}
           </div>
         )}
         {errorMessage && !showModal && (
-          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
+          <div className="bg-red-50 border border-red-200 text-red-800 px-3 md:px-4 py-2 md:py-3 rounded-lg mb-4 text-sm md:text-base">
             {errorMessage}
           </div>
         )}
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           <button
             onClick={() => setFilterStatus('all')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-colors ${
               filterStatus === 'all'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -486,7 +487,7 @@ function Household() {
           </button>
           <button
             onClick={() => setFilterStatus('paid')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-colors ${
               filterStatus === 'paid'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -496,7 +497,7 @@ function Household() {
           </button>
           <button
             onClick={() => setFilterStatus('unpaid')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-colors ${
               filterStatus === 'unpaid'
                 ? 'bg-yellow-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -506,7 +507,7 @@ function Household() {
           </button>
           <button
             onClick={() => setFilterStatus('archived')}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-colors ${
               filterStatus === 'archived'
                 ? 'bg-gray-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -520,13 +521,13 @@ function Household() {
         <div className="relative">
           <input
             type="text"
-            placeholder="Search by name, email, contact, meter number, or gender..."
+            placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 md:px-4 py-2 md:py-3 pl-10 md:pl-12 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
           <svg
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400"
+            className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -541,7 +542,7 @@ function Household() {
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               ✕
             </button>
@@ -550,10 +551,10 @@ function Household() {
       </div>
 
       {/* Users List */}
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800">Registered Users</h2>
-          <p className="text-sm text-gray-500">
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Users</h2>
+          <p className="text-xs md:text-sm text-gray-500">
             Showing {filteredUsers.length} of {users.length} users
           </p>
         </div>
@@ -568,14 +569,101 @@ function Household() {
             <p className="text-gray-500">No users found matching your search</p>
             <button
               onClick={() => setSearchTerm('')}
-              className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+              className="mt-4 text-blue-600 hover:text-blue-700 font-medium text-sm md:text-base"
             >
               Clear search
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+          <>
+            {/* Mobile Card View */}
+            <div className="block lg:hidden space-y-4">
+              {filteredUsers.map((user) => (
+                <div key={user.id} className={`border rounded-lg p-4 ${user.isArchived ? 'bg-gray-50' : 'bg-white'}`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 text-base">
+                        {user.fullName}
+                        {user.isArchived && (
+                          <span className="ml-2 text-xs text-gray-500">(Archived)</span>
+                        )}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">{user.email}</p>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {user.role || 'resident'}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Contact:</span>
+                      <span className="text-gray-900">{user.contactNumber}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Meter #:</span>
+                      <span className="text-gray-900">{user.meterNumber}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Payment:</span>
+                      <button
+                        onClick={() => handleTogglePaymentStatus(user)}
+                        disabled={user.isArchived || loading}
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors ${
+                          user.paymentStatus === 'paid'
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                        } ${user.isArchived ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {user.paymentStatus === 'paid' ? '✓ Paid' : '⊘ Unpaid'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mt-4 pt-3 border-t">
+                    {user.isArchived ? (
+                      <button
+                        onClick={() => handleRestore(user)}
+                        disabled={loading}
+                        className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Restore
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleOpenEditModal(user)}
+                          disabled={loading}
+                          className="flex-1 bg-blue-50 text-blue-700 hover:bg-blue-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleOpenArchiveModal(user)}
+                          disabled={loading}
+                          className="flex-1 bg-gray-50 text-gray-700 hover:bg-gray-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                          </svg>
+                          Archive
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -679,7 +767,8 @@ function Household() {
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -687,9 +776,9 @@ function Household() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-4 md:p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-gray-800">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">
                   {isEditMode ? 'Edit User' : 'Create New User'}
                 </h2>
                 <button
@@ -709,17 +798,17 @@ function Household() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-3 md:space-y-4">
               {/* Success Message */}
               {successMessage && (
-                <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">
+                <div className="bg-green-50 border border-green-200 text-green-800 px-3 md:px-4 py-2 md:py-3 rounded-lg text-sm md:text-base">
                   {successMessage}
                 </div>
               )}
 
               {/* Error Message */}
               {errorMessage && (
-                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+                <div className="bg-red-50 border border-red-200 text-red-800 px-3 md:px-4 py-2 md:py-3 rounded-lg text-sm md:text-base">
                   {errorMessage}
                 </div>
               )}
@@ -734,7 +823,7 @@ function Household() {
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.fullName ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Enter full name"
@@ -755,7 +844,7 @@ function Household() {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.email ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Enter email address"
@@ -776,7 +865,7 @@ function Household() {
                   name="contactNumber"
                   value={formData.contactNumber}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.contactNumber ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Enter contact number"
@@ -788,7 +877,7 @@ function Household() {
               </div>
 
               {/* Gender and Age Row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 {/* Gender */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -798,7 +887,7 @@ function Household() {
                     name="gender"
                     value={formData.gender}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.gender ? 'border-red-500' : 'border-gray-300'
                     }`}
                     disabled={loading}
@@ -823,7 +912,7 @@ function Household() {
                     name="age"
                     value={formData.age}
                     onChange={handleInputChange}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.age ? 'border-red-500' : 'border-gray-300'
                     }`}
                     placeholder="Enter age"
@@ -847,7 +936,7 @@ function Household() {
                   name="meterNumber"
                   value={formData.meterNumber}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                  className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.meterNumber ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="Enter meter number"
@@ -859,16 +948,16 @@ function Household() {
               </div>
 
               {/* Form Actions */}
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors duration-200 ${
+                  className={`flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 md:py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 text-sm md:text-base ${
                     loading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
                   {loading 
-                    ? (isEditMode ? 'Updating User...' : 'Creating User...') 
+                    ? (isEditMode ? 'Updating...' : 'Creating...') 
                     : (isEditMode ? 'Update User' : 'Create User')
                   }
                 </button>
@@ -883,7 +972,7 @@ function Household() {
                     setEditingUserId(null);
                   }}
                   disabled={loading}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2.5 md:py-3 px-4 md:px-6 rounded-lg transition-colors duration-200 text-sm md:text-base"
                 >
                   Cancel
                 </button>
@@ -897,34 +986,34 @@ function Household() {
       {showArchiveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex items-center justify-center w-12 h-12 mx-auto bg-gray-100 rounded-full mb-4">
-                <svg className="h-6 w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="p-4 md:p-6">
+              <div className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 mx-auto bg-gray-100 rounded-full mb-3 md:mb-4">
+                <svg className="h-5 w-5 md:h-6 md:w-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-gray-900 text-center mb-2">
+              <h3 className="text-base md:text-lg font-bold text-gray-900 text-center mb-2">
                 Archive User
               </h3>
-              <p className="text-sm text-gray-500 text-center mb-6">
+              <p className="text-xs md:text-sm text-gray-500 text-center mb-4 md:mb-6">
                 Are you sure you want to archive <span className="font-semibold text-gray-900">{userToArchive?.fullName}</span>? 
                 You can restore this user later from the Archived filter.
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => {
                     setShowArchiveModal(false);
                     setUserToArchive(null);
                   }}
                   disabled={loading}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200"
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 text-sm md:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleArchive}
                   disabled={loading}
-                  className={`flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 ${
+                  className={`flex-1 bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 text-sm md:text-base ${
                     loading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
