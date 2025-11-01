@@ -1,2 +1,34 @@
 @import "tailwindcss";
 
+/* Print styles for QR Code */
+@media print {
+  /* Hide everything except the QR code modal content */
+  body > *:not(.fixed) {
+    display: none !important;
+  }
+  
+  /* Ensure QR code modal is visible and properly styled for printing */
+  .fixed {
+    position: static !important;
+    background: white !important;
+  }
+  
+  /* Remove modal overlay background when printing */
+  .fixed > div {
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  
+  /* Optimize page for printing */
+  @page {
+    margin: 1cm;
+    size: portrait;
+  }
+  
+  /* Ensure QR code is centered and properly sized */
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

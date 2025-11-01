@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
+import { QRCodeSVG } from 'qrcode.react';
 
 function Household() {
   const [showModal, setShowModal] = useState(false);
@@ -9,6 +10,8 @@ function Household() {
   const [editingUserId, setEditingUserId] = useState(null);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [userToArchive, setUserToArchive] = useState(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [userForQR, setUserForQR] = useState(null);
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -300,6 +303,15 @@ function Household() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenQRModal = (user) => {
+    setUserForQR(user);
+    setShowQRModal(true);
+  };
+
+  const handlePrintQR = () => {
+    window.print();
   };
 
   const handleRestore = async (user) => {
@@ -732,6 +744,16 @@ function Household() {
                           Edit
                         </button>
                         <button
+                          onClick={() => handleOpenQRModal(user)}
+                          disabled={loading}
+                          className="flex-1 bg-purple-50 text-purple-700 hover:bg-purple-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                          </svg>
+                          QR
+                        </button>
+                        <button
                           onClick={() => handleOpenArchiveModal(user)}
                           disabled={loading}
                           className="flex-1 bg-gray-50 text-gray-700 hover:bg-gray-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
@@ -846,6 +868,16 @@ function Household() {
                           >
                             <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleOpenQRModal(user)}
+                            disabled={loading}
+                            className="text-purple-600 hover:text-purple-900 mr-3"
+                            title="View QR Code"
+                          >
+                            <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                             </svg>
                           </button>
                           <button
@@ -1182,6 +1214,101 @@ function Household() {
                 >
                   {loading ? 'Archiving...' : 'Archive'}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && userForQR && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
+            <div className="p-6 border-b border-gray-200 print:border-0">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+                  Household QR Code
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowQRModal(false);
+                    setUserForQR(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl print:hidden"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 md:p-8">
+              {/* User Info */}
+              <div className="text-center mb-6">
+                <div className="flex justify-center mb-4">
+                  <img 
+                    src={userForQR.profilePicUrl || generateDefaultAvatar(userForQR.fullName, userForQR.gender)} 
+                    alt={userForQR.fullName}
+                    className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                  />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">
+                  {userForQR.fullName}
+                </h3>
+                <p className="text-sm text-gray-600 mb-1">
+                  Meter #: {userForQR.meterNumber}
+                </p>
+                <p className="text-xs text-gray-500">
+                  User ID: {userForQR.id}
+                </p>
+              </div>
+
+              {/* QR Code */}
+              <div className="flex justify-center mb-6 bg-white p-6 rounded-lg border-2 border-gray-200">
+                <QRCodeSVG 
+                  value={userForQR.id}
+                  size={256}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 print:hidden">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> This QR code contains the household ID and can be scanned for quick identification and billing purposes.
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 print:hidden">
+                <button
+                  onClick={handlePrintQR}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-colors duration-200 flex items-center justify-center gap-2"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  Print QR Code
+                </button>
+                <button
+                  onClick={() => {
+                    setShowQRModal(false);
+                    setUserForQR(null);
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                >
+                  Close
+                </button>
+              </div>
+
+              {/* Print-only footer */}
+              <div className="hidden print:block text-center mt-6 pt-6 border-t border-gray-200">
+                <p className="text-sm text-gray-600">
+                  AquaBill Management System
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Generated on {new Date().toLocaleDateString()}
+                </p>
               </div>
             </div>
           </div>

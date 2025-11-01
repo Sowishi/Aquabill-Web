@@ -383,7 +383,7 @@ function Collectors() {
           contactNumber: formData.contactNumber,
           gender: formData.gender,
           age: parseInt(formData.age),
-          temporaryPassword: tempPassword,
+          password: tempPassword,
           passwordChanged: false,
           role: 'collector',
           status: 'active',
