@@ -1222,11 +1222,11 @@ function Household() {
 
       {/* QR Code Modal */}
       {showQRModal && userForQR && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full">
-            <div className="p-6 border-b border-gray-200 print:border-0">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:bg-white print:relative print:p-0">
+          <div id="qr-printable-area" className="bg-white rounded-xl shadow-2xl max-w-lg w-full print:shadow-none print:max-w-full print:rounded-none">
+            <div className="p-6 border-b border-gray-200 print:border-0 print:pb-2">
+              <div className="flex justify-between items-center print:justify-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800 print:text-center">
                   Household QR Code
                 </h2>
                 <button
@@ -1241,29 +1241,29 @@ function Household() {
               </div>
             </div>
 
-            <div className="p-6 md:p-8">
+            <div className="p-6 md:p-8 print:p-6">
               {/* User Info */}
-              <div className="text-center mb-6">
-                <div className="flex justify-center mb-4">
+              <div className="text-center mb-6 print:mb-8">
+                <div className="flex justify-center mb-4 print:mb-6">
                   <img 
                     src={userForQR.profilePicUrl || generateDefaultAvatar(userForQR.fullName, userForQR.gender)} 
                     alt={userForQR.fullName}
-                    className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
+                    className="w-20 h-20 rounded-full object-cover border-2 border-gray-200 print:w-24 print:h-24"
                   />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-1">
+                <h3 className="text-xl font-bold text-gray-900 mb-1 print:text-2xl print:mb-2">
                   {userForQR.fullName}
                 </h3>
-                <p className="text-sm text-gray-600 mb-1">
+                <p className="text-sm text-gray-600 mb-1 print:text-base print:mb-2">
                   Meter #: {userForQR.meterNumber}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 print:text-sm">
                   User ID: {userForQR.id}
                 </p>
               </div>
 
               {/* QR Code */}
-              <div className="flex justify-center mb-6 bg-white p-6 rounded-lg border-2 border-gray-200">
+              <div className="flex justify-center mb-6 bg-white p-6 rounded-lg border-2 border-gray-200 print:mb-8 print:p-8 print:border-4">
                 <QRCodeSVG 
                   value={userForQR.id}
                   size={256}
@@ -1302,12 +1302,15 @@ function Household() {
               </div>
 
               {/* Print-only footer */}
-              <div className="hidden print:block text-center mt-6 pt-6 border-t border-gray-200">
-                <p className="text-sm text-gray-600">
+              <div className="hidden print:block text-center mt-8 pt-6 border-t-2 border-gray-300">
+                <p className="text-base font-semibold text-gray-700 mb-2">
                   AquaBill Management System
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Generated on {new Date().toLocaleDateString()}
+                <p className="text-sm text-gray-600">
+                  Generated on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+                </p>
+                <p className="text-xs text-gray-500 mt-2 italic">
+                  Scan this QR code for household verification and billing
                 </p>
               </div>
             </div>
