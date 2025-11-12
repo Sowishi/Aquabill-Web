@@ -1,9 +1,17 @@
 import { useState } from 'react'
-import { Outlet, NavLink } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import aquabillLogo from '../assets/aquabill-logo.png'
 
 function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const { logout, user } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: '📊' },
@@ -74,8 +82,8 @@ function Dashboard() {
             </div>
             {isSidebarOpen && (
               <div className="flex-1">
-                <p className="font-medium text-sm">Admin User</p>
-                <p className="text-xs text-white/70">admin@aquabill.com</p>
+                <p className="font-medium text-sm">{user?.name || 'Admin User'}</p>
+                <p className="text-xs text-white/70">{user?.email || 'admin@aquabill.com'}</p>
               </div>
             )}
           </div>
@@ -87,7 +95,10 @@ function Dashboard() {
         {/* Header */}
         <header className="bg-white shadow-sm px-8 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-800">Welcome to AquaBill</h2>
-          <button className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition">
+          <button 
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
+          >
             Logout
           </button>
         </header>
@@ -102,6 +113,7 @@ function Dashboard() {
 }
 
 export default Dashboard
+
 
 
 

@@ -1,44 +1,83 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import aquabillLogo from '../assets/aquabill-logo.png'
+import bgImage from '../assets/bg.jpg'
 
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const { login, isAuthenticated, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/dashboard')
+    }
+  }, [isAuthenticated, authLoading, navigate])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    // Handle login logic here
-    console.log('Login attempted:', { email, password })
+    setError('')
+    setLoading(true)
+
+    const result = login(email, password)
+    
+    if (result.success) {
+      navigate('/dashboard')
+    } else {
+      setError(result.error || 'Invalid credentials')
+    }
+    
+    setLoading(false)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-cyan-100 p-8">
+    <div 
+      className="min-h-screen flex items-center justify-center p-8"
+      style={{
+        backgroundImage: `url(${bgImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl flex overflow-hidden">
         {/* Left side - Logo */}
-        <div className="w-1/2 bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center p-12">
+        <div className="w-1/2 bg-white flex items-center justify-center p-12">
           <div className="text-center">
             <img 
               src={aquabillLogo} 
               alt="AquaBill Logo" 
-              className="h-32 w-auto mx-auto mb-4"
+              className="h-32 w-auto mx-auto mb-6"
             />
+            <p className="text-gray-700 text-sm leading-relaxed max-w-md mx-auto font-bold">
+              <span className="font-bold text-2xl text-gray-900">AQUA-BILL:Developing a Water Billing Management System for Magahis III WEST Water System. </span> 
+              <br /><br />
+              Ensure your home or community enjoys efficient and sustainable water services! Our advanced water management system offers monitoring, billing automation, leak detection, and consumption tracking. All designed to save you time, money, and resources.
+            </p>
           </div>
         </div>
 
         {/* Right side - Form */}
-        <div className="w-1/2 p-12 flex flex-col justify-center">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            Welcome Back
+        <div className="w-1/2 p-12 flex flex-col justify-center" style={{ backgroundColor: '#0077b6' }}>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Admin Login
           </h1>
-          <p className="text-gray-600 mb-8">
-            Sign in to your account
-          </p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-white text-sm">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label 
                 htmlFor="email" 
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-white mb-2"
               >
                 Email
               </label>
@@ -47,7 +86,7 @@ function Login() {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                className="w-full px-4 py-3 border border-white/30 rounded-lg focus:ring-2 focus:ring-white/50 focus:border-white/50 outline-none transition bg-white/10 text-white placeholder-white/70"
                 placeholder="Enter your email"
                 required
               />
@@ -56,7 +95,7 @@ function Login() {
             <div>
               <label 
                 htmlFor="password" 
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-white mb-2"
               >
                 Password
               </label>
@@ -65,33 +104,19 @@ function Login() {
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                className="w-full px-4 py-3 border border-white/30 rounded-lg focus:ring-2 focus:ring-white/50 focus:border-white/50 outline-none transition bg-white/10 text-white placeholder-white/70"
                 placeholder="Enter your password"
                 required
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <label className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="ml-2 text-sm text-gray-600">Remember me</span>
-              </label>
-              <a 
-                href="#" 
-                className="text-sm text-blue-600 hover:text-blue-800 transition"
-              >
-                Forgot password?
-              </a>
-            </div>
 
             <button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+              disabled={loading}
+              className="w-full bg-white text-[#0077b6] hover:bg-white/90 font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign In
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
           </form>
         </div>
