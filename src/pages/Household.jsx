@@ -17,7 +17,7 @@ function Household() {
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // all, paid, unpaid, archived
+  const [filterStatus, setFilterStatus] = useState('all'); // all, paid, unpaid, no billing, archived
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -46,6 +46,8 @@ function Household() {
       filtered = filtered.filter(user => user.paymentStatus === 'paid');
     } else if (filterStatus === 'unpaid') {
       filtered = filtered.filter(user => user.paymentStatus === 'unpaid');
+    } else if (filterStatus === 'no billing') {
+      filtered = filtered.filter(user => user.paymentStatus === 'no billing');
     } else if (filterStatus === 'archived') {
       filtered = filtered.filter(user => user.isArchived === true);
     } else if (filterStatus === 'all') {
@@ -75,10 +77,59 @@ function Household() {
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('role', '==', 'resident'));
       const querySnapshot = await getDocs(q);
-      const usersData = querySnapshot.docs.map(doc => ({
+      
+      // Fetch all billings
+      const billingsRef = collection(db, 'billing');
+      const billingsSnapshot = await getDocs(billingsRef);
+      const allBillings = billingsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+
+      // Process users and determine payment status from billing
+      const usersData = querySnapshot.docs.map(doc => {
+        const userData = {
+          id: doc.id,
+          ...doc.data()
+        };
+
+        // Find billings for this user (by userId or meterNumber)
+        const userBillings = allBillings.filter(billing => 
+          billing.userId === doc.id || 
+          billing.meterNumber === userData.meterNumber ||
+          billing.householdId === doc.id
+        );
+
+        // Determine payment status based on billing
+        if (userBillings.length === 0) {
+          // No billing found
+          userData.paymentStatus = 'no billing';
+          userData.readingStatus = 'Not Yet Read';
+        } else {
+          // Check if there are any unpaid billings
+          // Check multiple possible field names for payment status
+          const hasUnpaid = userBillings.some(billing => {
+            const status = billing.status || billing.paymentStatus || billing.paidStatus;
+            const isPaid = billing.paid === true || billing.isPaid === true;
+            
+            // If status field exists, check it
+            if (status) {
+              return status.toLowerCase() === 'unpaid' || status.toLowerCase() === 'pending';
+            }
+            // If paid boolean exists, check if it's false
+            if (typeof billing.paid === 'boolean' || typeof billing.isPaid === 'boolean') {
+              return !isPaid;
+            }
+            // Default: if billing exists but no clear status, consider it unpaid
+            return true;
+          });
+          userData.paymentStatus = hasUnpaid ? 'unpaid' : 'paid';
+          userData.readingStatus = 'Read';
+        }
+
+        return userData;
+      });
+
       setUsers(usersData);
       setFilteredUsers(usersData);
     } catch (error) {
@@ -564,6 +615,7 @@ function Household() {
                 <option value="all">All Active</option>
                 <option value="paid">Paid</option>
                 <option value="unpaid">Unpaid</option>
+                <option value="no billing">No Billing</option>
                 <option value="archived">Archived</option>
               </select>
               <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
@@ -666,9 +718,6 @@ function Household() {
                           </h3>
                           <p className="text-sm text-gray-600 mt-1 truncate">{user.email}</p>
                         </div>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 flex-shrink-0">
-                          {user.role || 'resident'}
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -683,18 +732,24 @@ function Household() {
                       <span className="text-gray-900">{user.meterNumber}</span>
                     </div>
                     <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Reading:</span>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        user.readingStatus === 'Read'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.readingStatus || 'Not Yet Read'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
                       <span className="text-gray-500">Payment:</span>
-                      <button
-                        onClick={() => handleTogglePaymentStatus(user)}
-                        disabled={user.isArchived || loading}
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors ${
-                          user.paymentStatus === 'paid'
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                            : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                        } ${user.isArchived ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                      >
-                        {user.paymentStatus === 'paid' ? '✓ Paid' : '⊘ Unpaid'}
-                      </button>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        user.paymentStatus === 'paid'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.paymentStatus === 'paid' ? '✓ Paid' : user.paymentStatus === 'unpaid' ? '⊘ Unpaid' : '⊘ No Billing'}
+                      </span>
                     </div>
                   </div>
 
@@ -767,7 +822,7 @@ function Household() {
                     Meter Number
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    Role
+                    Reading Status
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Payment Status
@@ -807,23 +862,22 @@ function Household() {
                       {user.meterNumber}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
-                        {user.role || 'resident'}
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        user.readingStatus === 'Read'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.readingStatus || 'Not Yet Read'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <button
-                        onClick={() => handleTogglePaymentStatus(user)}
-                        disabled={user.isArchived || loading}
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                          user.paymentStatus === 'paid'
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                            : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                        } ${user.isArchived ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                        title={user.isArchived ? 'Cannot change status for archived users' : 'Click to toggle payment status'}
-                      >
-                        {user.paymentStatus === 'paid' ? '✓ Paid' : '⊘ Unpaid'}
-                      </button>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        user.paymentStatus === 'paid'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {user.paymentStatus === 'paid' ? '✓ Paid' : user.paymentStatus === 'unpaid' ? '⊘ Unpaid' : '⊘ No Billing'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {user.isArchived ? (
