@@ -3,7 +3,7 @@ import { collection, addDoc, getDocs, query, where, doc, updateDoc } from 'fireb
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
 import { QRCodeSVG } from 'qrcode.react';
-import { MdHome, MdSearch, MdFilterList } from 'react-icons/md';
+import { MdHome, MdSearch, MdFilterList, MdReceipt, MdPayment, MdHistory } from 'react-icons/md';
 
 function Household() {
   const [showModal, setShowModal] = useState(false);
@@ -31,6 +31,38 @@ function Household() {
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [viewBillsDropdown, setViewBillsDropdown] = useState(null); // Track which user's dropdown is open
+  const [showPaymentHistoryModal, setShowPaymentHistoryModal] = useState(false);
+  const [selectedUserForPaymentHistory, setSelectedUserForPaymentHistory] = useState(null);
+  const [paymentHistory, setPaymentHistory] = useState([]);
+  const [loadingPaymentHistory, setLoadingPaymentHistory] = useState(false);
+  const [paymentHistoryFilterMonth, setPaymentHistoryFilterMonth] = useState('');
+  const [paymentHistoryFilterYear, setPaymentHistoryFilterYear] = useState('');
+  
+  const [showConsumedHistoryModal, setShowConsumedHistoryModal] = useState(false);
+  const [selectedUserForConsumedHistory, setSelectedUserForConsumedHistory] = useState(null);
+  const [consumedHistory, setConsumedHistory] = useState([]);
+  const [loadingConsumedHistory, setLoadingConsumedHistory] = useState(false);
+  const [consumedHistoryFilterMonth, setConsumedHistoryFilterMonth] = useState('');
+  const [consumedHistoryFilterYear, setConsumedHistoryFilterYear] = useState('');
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click is outside any dropdown
+      if (!event.target.closest('.view-bills-dropdown')) {
+        setViewBillsDropdown(null);
+      }
+    };
+
+    if (viewBillsDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [viewBillsDropdown]);
 
   // Fetch users from Firestore
   useEffect(() => {
@@ -364,6 +396,151 @@ function Household() {
 
   const handlePrintQR = () => {
     window.print();
+  };
+
+  const handleViewBillsClick = (userId, event) => {
+    event.stopPropagation();
+    setViewBillsDropdown(viewBillsDropdown === userId ? null : userId);
+  };
+
+  const handlePaymentHistory = async (user) => {
+    setViewBillsDropdown(null);
+    setSelectedUserForPaymentHistory(user);
+    setShowPaymentHistoryModal(true);
+    setLoadingPaymentHistory(true);
+    
+    try {
+      // Fetch payment history from billing collection
+      const billingsRef = collection(db, 'billing');
+      const billingsSnapshot = await getDocs(billingsRef);
+      const allBillings = billingsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Filter billings for this user
+      const userBillings = allBillings.filter(billing => 
+        billing.userId === user.id || 
+        billing.meterNumber === user.meterNumber ||
+        billing.householdId === user.id
+      );
+
+      // Sort by date (newest first)
+      const sortedBillings = userBillings.sort((a, b) => {
+        const dateA = a.createdAt || a.date || a.billingDate || '';
+        const dateB = b.createdAt || b.date || b.billingDate || '';
+        return new Date(dateB) - new Date(dateA);
+      });
+
+      setPaymentHistory(sortedBillings);
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+      setErrorMessage('Failed to fetch payment history. ' + error.message);
+      setPaymentHistory([]);
+    } finally {
+      setLoadingPaymentHistory(false);
+    }
+  };
+
+  const handleConsumedHistory = async (user) => {
+    setViewBillsDropdown(null);
+    setSelectedUserForConsumedHistory(user);
+    setShowConsumedHistoryModal(true);
+    setLoadingConsumedHistory(true);
+    
+    try {
+      // Fetch consumed history from billing collection
+      const billingsRef = collection(db, 'billing');
+      const billingsSnapshot = await getDocs(billingsRef);
+      const allBillings = billingsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Filter billings for this user
+      const userBillings = allBillings.filter(billing => 
+        billing.userId === user.id || 
+        billing.meterNumber === user.meterNumber ||
+        billing.householdId === user.id
+      );
+
+      // Sort by date (newest first)
+      const sortedBillings = userBillings.sort((a, b) => {
+        const dateA = a.createdAt || a.date || a.billingDate || '';
+        const dateB = b.createdAt || b.date || b.billingDate || '';
+        return new Date(dateB) - new Date(dateA);
+      });
+
+      setConsumedHistory(sortedBillings);
+    } catch (error) {
+      console.error('Error fetching consumed history:', error);
+      setErrorMessage('Failed to fetch consumed history. ' + error.message);
+      setConsumedHistory([]);
+    } finally {
+      setLoadingConsumedHistory(false);
+    }
+  };
+
+  // Filter payment history by month/year
+  const getFilteredPaymentHistory = () => {
+    let filtered = paymentHistory;
+    
+    if (paymentHistoryFilterYear) {
+      filtered = filtered.filter(billing => {
+        const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
+        if (!billingDate) return false;
+        const year = new Date(billingDate).getFullYear();
+        return year.toString() === paymentHistoryFilterYear;
+      });
+    }
+    
+    if (paymentHistoryFilterMonth) {
+      filtered = filtered.filter(billing => {
+        const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
+        if (!billingDate) return false;
+        const month = (new Date(billingDate).getMonth() + 1).toString().padStart(2, '0');
+        return month === paymentHistoryFilterMonth;
+      });
+    }
+    
+    return filtered;
+  };
+
+  // Filter consumed history by month/year
+  const getFilteredConsumedHistory = () => {
+    let filtered = consumedHistory;
+    
+    if (consumedHistoryFilterYear) {
+      filtered = filtered.filter(billing => {
+        const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
+        if (!billingDate) return false;
+        const year = new Date(billingDate).getFullYear();
+        return year.toString() === consumedHistoryFilterYear;
+      });
+    }
+    
+    if (consumedHistoryFilterMonth) {
+      filtered = filtered.filter(billing => {
+        const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
+        if (!billingDate) return false;
+        const month = (new Date(billingDate).getMonth() + 1).toString().padStart(2, '0');
+        return month === consumedHistoryFilterMonth;
+      });
+    }
+    
+    return filtered;
+  };
+
+  // Get unique years from history
+  const getAvailableYears = (history) => {
+    const years = new Set();
+    history.forEach(billing => {
+      const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
+      if (billingDate) {
+        years.add(new Date(billingDate).getFullYear().toString());
+      }
+    });
+    return Array.from(years).sort((a, b) => parseInt(b) - parseInt(a));
   };
 
   const handleRestore = async (user) => {
@@ -758,7 +935,8 @@ function Household() {
                       <button
                         onClick={() => handleRestore(user)}
                         disabled={loading}
-                        className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                        className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 text-white hover:opacity-80"
+                        style={{ backgroundColor: '#006fba' }}
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -767,10 +945,40 @@ function Household() {
                       </button>
                     ) : (
                       <>
+                        <div className="relative view-bills-dropdown">
+                          <button
+                            onClick={(e) => handleViewBillsClick(user.id, e)}
+                            disabled={loading}
+                            className="p-2 rounded transition hover:opacity-80"
+                            style={{ backgroundColor: '#006fba' }}
+                            title="View Bills"
+                          >
+                            <MdReceipt className="h-5 w-5 text-white" />
+                          </button>
+                          {viewBillsDropdown === user.id && (
+                            <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 view-bills-dropdown">
+                              <button
+                                onClick={() => handlePaymentHistory(user)}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <MdPayment className="text-lg" />
+                                <span>Payment History</span>
+                              </button>
+                              <button
+                                onClick={() => handleConsumedHistory(user)}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                              >
+                                <MdHistory className="text-lg" />
+                                <span>Consumed History</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         <button
                           onClick={() => handleOpenEditModal(user)}
                           disabled={loading}
-                          className="flex-1 bg-blue-50 text-blue-700 hover:bg-blue-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 text-white hover:opacity-80"
+                          style={{ backgroundColor: '#006fba' }}
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -780,7 +988,8 @@ function Household() {
                         <button
                           onClick={() => handleOpenQRModal(user)}
                           disabled={loading}
-                          className="flex-1 bg-purple-50 text-purple-700 hover:bg-purple-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 text-white hover:opacity-80"
+                          style={{ backgroundColor: '#006fba' }}
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
@@ -790,7 +999,8 @@ function Household() {
                         <button
                           onClick={() => handleOpenArchiveModal(user)}
                           disabled={loading}
-                          className="flex-1 bg-gray-50 text-gray-700 hover:bg-gray-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 text-white hover:opacity-80"
+                          style={{ backgroundColor: '#006fba' }}
                         >
                           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
@@ -880,52 +1090,86 @@ function Household() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {user.isArchived ? (
-                        <button
-                          onClick={() => handleRestore(user)}
-                          disabled={loading}
-                          className="text-green-600 hover:text-green-900"
-                          title="Restore user"
-                        >
-                          <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                        </button>
-                      ) : (
-                        <>
+                      <div className="flex items-center justify-end gap-2">
+                        {user.isArchived ? (
                           <button
-                            onClick={() => handleOpenEditModal(user)}
+                            onClick={() => handleRestore(user)}
                             disabled={loading}
-                            className="hover:opacity-80 transition mr-3"
-                            style={{ color: '#006fba' }}
-                            title="Edit user"
+                            className="p-2 rounded transition hover:opacity-80"
+                            style={{ backgroundColor: '#006fba' }}
+                            title="Restore user"
                           >
-                            <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           </button>
-                          <button
-                            onClick={() => handleOpenQRModal(user)}
-                            disabled={loading}
-                            className="text-purple-600 hover:text-purple-900 mr-3"
-                            title="View QR Code"
-                          >
-                            <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => handleOpenArchiveModal(user)}
-                            disabled={loading}
-                            className="text-gray-600 hover:text-gray-900"
-                            title="Archive user"
-                          >
-                            <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                            </svg>
-                          </button>
-                        </>
-                      )}
+                        ) : (
+                          <>
+                            <div className="relative view-bills-dropdown">
+                              <button
+                                onClick={(e) => handleViewBillsClick(user.id, e)}
+                                disabled={loading}
+                                className="p-2 rounded transition hover:opacity-80"
+                                style={{ backgroundColor: '#006fba' }}
+                                title="View Bills"
+                              >
+                                <MdReceipt className="h-5 w-5 text-white" />
+                              </button>
+                              {viewBillsDropdown === user.id && (
+                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 view-bills-dropdown">
+                                  <button
+                                    onClick={() => handlePaymentHistory(user)}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                  >
+                                    <MdPayment className="text-lg" />
+                                    <span>Payment History</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleConsumedHistory(user)}
+                                    className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                  >
+                                    <MdHistory className="text-lg" />
+                                    <span>Consumed History</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => handleOpenEditModal(user)}
+                              disabled={loading}
+                              className="p-2 rounded transition hover:opacity-80"
+                              style={{ backgroundColor: '#006fba' }}
+                              title="Edit user"
+                            >
+                              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleOpenQRModal(user)}
+                              disabled={loading}
+                              className="p-2 rounded transition hover:opacity-80"
+                              style={{ backgroundColor: '#006fba' }}
+                              title="View QR Code"
+                            >
+                              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleOpenArchiveModal(user)}
+                              disabled={loading}
+                              className="p-2 rounded transition hover:opacity-80"
+                              style={{ backgroundColor: '#006fba' }}
+                              title="Archive user"
+                            >
+                              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                              </svg>
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1347,6 +1591,348 @@ function Household() {
                   Scan this QR code for household verification and billing
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment History Modal */}
+      {showPaymentHistoryModal && selectedUserForPaymentHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+                    Payment History
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {selectedUserForPaymentHistory.fullName} - Meter #: {selectedUserForPaymentHistory.meterNumber}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPaymentHistoryModal(false);
+                    setSelectedUserForPaymentHistory(null);
+                    setPaymentHistory([]);
+                    setPaymentHistoryFilterMonth('');
+                    setPaymentHistoryFilterYear('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">Filter by Year:</label>
+                  <select
+                    value={paymentHistoryFilterYear}
+                    onChange={(e) => setPaymentHistoryFilterYear(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006fba]"
+                  >
+                    <option value="">All Years</option>
+                    {getAvailableYears(paymentHistory).map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">Filter by Month:</label>
+                  <select
+                    value={paymentHistoryFilterMonth}
+                    onChange={(e) => setPaymentHistoryFilterMonth(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006fba]"
+                  >
+                    <option value="">All Months</option>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingPaymentHistory ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-gray-500">Loading payment history...</div>
+                </div>
+              ) : getFilteredPaymentHistory().length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <MdPayment className="text-6xl text-gray-300 mb-4" />
+                  <p className="text-gray-500 text-lg">No payment history found</p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    {paymentHistory.length === 0 
+                      ? 'This user has no billing records yet.'
+                      : 'No records match the selected filters.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead style={{ backgroundColor: '#006fba' }} className="rounded-t-lg">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tl-lg">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                          Billing Period
+                        </th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                          Amount
+                        </th>
+                      
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tr-lg">
+                          Payment Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {getFilteredPaymentHistory().map((billing) => {
+                        const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
+                        const paymentDate = billing.paymentDate || billing.paidAt || '';
+                        const status = billing.status || billing.paymentStatus || (billing.paid ? 'paid' : 'unpaid');
+                        const amount = billing.amount || billing.totalAmount || billing.billAmount || '0';
+                        const consumption = billing.consumption || billing.waterConsumption || billing.consumed || 'N/A';
+                        const period = billing.period || billing.billingPeriod || billing.month || 'N/A';
+
+                        return (
+                          <tr key={billing.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {billingDate ? new Date(billingDate).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              }) : 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {period}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              ₱{parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                          
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                status.toLowerCase() === 'paid'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {status.toLowerCase() === 'paid' ? '✓ Paid' : '⊘ Unpaid'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {paymentDate ? new Date(paymentDate).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              }) : '-'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowPaymentHistoryModal(false);
+                  setSelectedUserForPaymentHistory(null);
+                  setPaymentHistory([]);
+                  setPaymentHistoryFilterMonth('');
+                  setPaymentHistoryFilterYear('');
+                }}
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors duration-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Consumed History Modal */}
+      {showConsumedHistoryModal && selectedUserForConsumedHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+                    Consumed History
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {selectedUserForConsumedHistory.fullName} - Meter #: {selectedUserForConsumedHistory.meterNumber}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowConsumedHistoryModal(false);
+                    setSelectedUserForConsumedHistory(null);
+                    setConsumedHistory([]);
+                    setConsumedHistoryFilterMonth('');
+                    setConsumedHistoryFilterYear('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">Filter by Year:</label>
+                  <select
+                    value={consumedHistoryFilterYear}
+                    onChange={(e) => setConsumedHistoryFilterYear(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006fba]"
+                  >
+                    <option value="">All Years</option>
+                    {getAvailableYears(consumedHistory).map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">Filter by Month:</label>
+                  <select
+                    value={consumedHistoryFilterMonth}
+                    onChange={(e) => setConsumedHistoryFilterMonth(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#006fba]"
+                  >
+                    <option value="">All Months</option>
+                    <option value="01">January</option>
+                    <option value="02">February</option>
+                    <option value="03">March</option>
+                    <option value="04">April</option>
+                    <option value="05">May</option>
+                    <option value="06">June</option>
+                    <option value="07">July</option>
+                    <option value="08">August</option>
+                    <option value="09">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingConsumedHistory ? (
+                <div className="flex justify-center items-center py-12">
+                  <div className="text-gray-500">Loading consumed history...</div>
+                </div>
+              ) : getFilteredConsumedHistory().length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <MdHistory className="text-6xl text-gray-300 mb-4" />
+                  <p className="text-gray-500 text-lg">No consumed history found</p>
+                  <p className="text-gray-400 text-sm mt-2">
+                    {consumedHistory.length === 0 
+                      ? 'This user has no consumption records yet.'
+                      : 'No records match the selected filters.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead style={{ backgroundColor: '#006fba' }} className="rounded-t-lg">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tl-lg">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                          Billing Period
+                        </th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                          Previous Reading
+                        </th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                          Current Reading
+                        </th>
+                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                          Consumption
+                        </th>
+                       
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {getFilteredConsumedHistory().map((billing) => {
+                        const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
+                        const consumption = billing.consumption || billing.waterConsumption || billing.consumed || '0';
+                        const previousReading = billing.previousReading || billing.prevReading || billing.lastReading || 'N/A';
+                        const currentReading = billing.currentReading || billing.currReading || billing.newReading || 'N/A';
+                        const period = billing.period || billing.billingPeriod || billing.month || 'N/A';
+                        const unit = billing.unit || 'cu.m';
+
+                        return (
+                          <tr key={billing.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              {billingDate ? new Date(billingDate).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              }) : 'N/A'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {period}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {previousReading}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {currentReading}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {consumption}
+                            </td>
+                            
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowConsumedHistoryModal(false);
+                  setSelectedUserForConsumedHistory(null);
+                  setConsumedHistory([]);
+                  setConsumedHistoryFilterMonth('');
+                  setConsumedHistoryFilterYear('');
+                }}
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors duration-200"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
