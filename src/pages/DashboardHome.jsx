@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { MdHome, MdPeople, MdAnnouncement, MdCheck, MdCancel, MdArchive, MdBlock } from 'react-icons/md';
 
 function DashboardHome() {
   const [loading, setLoading] = useState(true);
@@ -130,25 +131,19 @@ function DashboardHome() {
   const activeHouseholds = stats.totalHouseholds - stats.archivedHouseholds;
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">Dashboard</h1>
-        <p className="text-sm md:text-base text-gray-600">Welcome to your AquaBill dashboard overview</p>
-      </div>
-
+    <div className="space-y-4 md:space-y-6 mx-4 md:mx-6">
       {/* Stats Grid - Households */}
       <div>
         <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 px-1">Households Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-4 md:p-6 shadow-lg">
+          <div className="text-white rounded-xl p-4 md:p-6 shadow-lg" style={{ backgroundColor: '#006fba' }}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-xs md:text-sm">Total Households</p>
+                <p className="text-white/80 text-xs md:text-sm">Total Households</p>
                 <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.totalHouseholds}</p>
-                <p className="text-blue-100 text-xs mt-1">{activeHouseholds} active</p>
+                <p className="text-white/80 text-xs mt-1">{activeHouseholds} active</p>
               </div>
-              <div className="text-3xl md:text-4xl">🏠</div>
+              <MdHome className="text-3xl md:text-4xl" />
             </div>
           </div>
 
@@ -163,7 +158,7 @@ function DashboardHome() {
                   </p>
                 )}
               </div>
-              <div className="text-3xl md:text-4xl">✓</div>
+              <MdCheck className="text-3xl md:text-4xl" />
             </div>
           </div>
 
@@ -178,7 +173,7 @@ function DashboardHome() {
                   </p>
                 )}
               </div>
-              <div className="text-3xl md:text-4xl">⊘</div>
+              <MdCancel className="text-3xl md:text-4xl" />
             </div>
           </div>
 
@@ -193,7 +188,7 @@ function DashboardHome() {
                   </p>
                 )}
               </div>
-              <div className="text-3xl md:text-4xl">📦</div>
+              <MdArchive className="text-3xl md:text-4xl" />
             </div>
           </div>
         </div>
@@ -209,7 +204,7 @@ function DashboardHome() {
                 <p className="text-cyan-100 text-xs md:text-sm">Total Collectors</p>
                 <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.totalCollectors}</p>
               </div>
-              <div className="text-3xl md:text-4xl">👥</div>
+              <MdPeople className="text-3xl md:text-4xl" />
             </div>
           </div>
 
@@ -224,7 +219,7 @@ function DashboardHome() {
                   </p>
                 )}
               </div>
-              <div className="text-3xl md:text-4xl">✓</div>
+              <MdCheck className="text-3xl md:text-4xl" />
             </div>
           </div>
 
@@ -239,7 +234,7 @@ function DashboardHome() {
                   </p>
                 )}
               </div>
-              <div className="text-3xl md:text-4xl">⊘</div>
+              <MdCancel className="text-3xl md:text-4xl" />
             </div>
           </div>
 
@@ -254,7 +249,7 @@ function DashboardHome() {
                   </p>
                 )}
               </div>
-              <div className="text-3xl md:text-4xl">🚫</div>
+              <MdBlock className="text-3xl md:text-4xl" />
             </div>
           </div>
         </div>
@@ -269,7 +264,7 @@ function DashboardHome() {
         
         {recentAnnouncements.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl md:text-5xl mb-3">📢</div>
+            <MdAnnouncement className="text-4xl md:text-5xl mb-3 mx-auto" />
             <p className="text-sm md:text-base text-gray-500">No announcements yet</p>
           </div>
         ) : (
@@ -278,7 +273,7 @@ function DashboardHome() {
               <div key={announcement.id} className="flex items-start justify-between py-3 border-b last:border-b-0 gap-4">
                 <div className="flex items-start space-x-3 flex-1 min-w-0">
                   <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span>📢</span>
+                    <MdAnnouncement />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm md:text-base text-gray-800 truncate">{announcement.title}</p>

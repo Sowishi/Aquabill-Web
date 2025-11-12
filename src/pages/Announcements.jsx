@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { MdAnnouncement, MdSearch } from 'react-icons/md';
 
 function Announcements() {
   const [showModal, setShowModal] = useState(false);
@@ -239,23 +240,8 @@ function Announcements() {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 mx-4 md:mx-6">
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">Announcements</h1>
-            <p className="text-sm md:text-base text-gray-600">Create and manage announcements for households</p>
-          </div>
-          <button
-            onClick={handleOpenCreateModal}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 flex items-center justify-center gap-2 whitespace-nowrap"
-          >
-            <span className="text-xl">+</span>
-            <span className="hidden sm:inline">New Announcement</span>
-            <span className="sm:hidden">New</span>
-          </button>
-        </div>
-
         {/* Success/Error Messages */}
         {successMessage && !showModal && (
           <div className="bg-green-50 border border-green-200 text-green-800 px-3 md:px-4 py-2 md:py-3 rounded-lg mb-4 text-sm md:text-base">
@@ -268,66 +254,81 @@ function Announcements() {
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search announcements..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 md:px-4 py-2 md:py-3 pl-10 md:pl-12 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <svg
-            className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+        {/* Search Bar and Add Button */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          {/* Search Bar */}
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search announcements..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-3 md:px-4 py-2 md:py-3 pl-10 md:pl-12 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-          </svg>
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            <svg
+              className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              ✕
-            </button>
-          )}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Add Button */}
+          <button
+            onClick={handleOpenCreateModal}
+            className="text-white font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 flex items-center justify-center gap-2 whitespace-nowrap hover:opacity-90"
+            style={{ backgroundColor: '#006fba' }}
+          >
+            <span className="text-xl">+</span>
+            <span className="hidden sm:inline">New Announcement</span>
+            <span className="sm:hidden">New</span>
+          </button>
         </div>
       </div>
 
       {/* Announcements List */}
-      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-          <h2 className="text-lg md:text-xl font-bold text-gray-800">All Announcements</h2>
-          <p className="text-xs md:text-sm text-gray-500">
-            {filteredAnnouncements.length} {filteredAnnouncements.length === 1 ? 'announcement' : 'announcements'}
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+        <h2 className="text-lg md:text-xl font-bold text-gray-800">All Announcements</h2>
+        <p className="text-xs md:text-sm text-gray-500">
+          {filteredAnnouncements.length} {filteredAnnouncements.length === 1 ? 'announcement' : 'announcements'}
+        </p>
+      </div>
 
         {announcements.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">📢</div>
+            <MdAnnouncement className="text-6xl mb-4 mx-auto" />
             <p className="text-gray-500">No announcements yet</p>
             <button
               onClick={handleOpenCreateModal}
-              className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+              className="mt-4 font-medium hover:opacity-80 transition"
+              style={{ color: '#006fba' }}
             >
               Create your first announcement
             </button>
           </div>
         ) : filteredAnnouncements.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">🔍</div>
+            <MdSearch className="text-6xl mb-4 mx-auto" />
             <p className="text-gray-500">No announcements found matching your search</p>
             <button
               onClick={() => setSearchTerm('')}
-              className="mt-4 text-blue-600 hover:text-blue-700 font-medium text-sm md:text-base"
+              className="mt-4 font-medium text-sm md:text-base hover:opacity-80 transition"
+              style={{ color: '#006fba' }}
             >
               Clear search
             </button>
@@ -352,7 +353,8 @@ function Announcements() {
                     <button
                       onClick={() => handleOpenEditModal(announcement)}
                       disabled={loading}
-                      className="text-blue-600 hover:text-blue-900 p-2"
+                      className="hover:opacity-80 transition p-2"
+                      style={{ color: '#006fba' }}
                       title="Edit"
                     >
                       <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -380,7 +382,6 @@ function Announcements() {
             ))}
           </div>
         )}
-      </div>
 
       {/* Create/Edit Announcement Modal */}
       {showModal && (
@@ -470,9 +471,10 @@ function Announcements() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 md:py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 text-sm md:text-base ${
+                  className={`flex-1 text-white font-semibold py-2.5 md:py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 text-sm md:text-base hover:opacity-90 ${
                     loading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
+                  style={{ backgroundColor: '#006fba' }}
                 >
                   {loading 
                     ? (isEditMode ? 'Updating...' : 'Creating...') 

@@ -62,7 +62,7 @@ function Login() {
         </div>
 
         {/* Right side - Form */}
-        <div className="w-1/2 p-12 flex flex-col justify-center" style={{ backgroundColor: '#0077b6' }}>
+        <div className="w-1/2 p-12 flex flex-col justify-center" style={{ backgroundColor: '#006fba' }}>
           <h1 className="text-3xl font-bold text-white mb-2">
             Admin Login
           </h1>
@@ -114,7 +114,7 @@ function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-white text-[#0077b6] hover:bg-white/90 font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-white text-[#006fba] hover:bg-white/90 font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </button>

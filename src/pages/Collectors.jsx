@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
+import { MdPeople, MdSearch, MdFilterList } from 'react-icons/md';
 
 function Collectors() {
   const [showModal, setShowModal] = useState(false);
@@ -455,23 +456,8 @@ function Collectors() {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 mx-4 md:mx-6">
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-1 md:mb-2">Collectors Management</h1>
-            <p className="text-sm md:text-base text-gray-600">Manage all bill collectors and their assignments</p>
-          </div>
-          <button
-            onClick={handleOpenCreateModal}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 flex items-center justify-center gap-2 whitespace-nowrap"
-          >
-            <span className="text-xl">+</span>
-            <span className="hidden sm:inline">Create New Collector</span>
-            <span className="sm:hidden">New Collector</span>
-          </button>
-        </div>
-
         {/* Success/Error Messages */}
         {successMessage && !showModal && (
           <div className="bg-green-50 border border-green-200 text-green-800 px-3 md:px-4 py-2 md:py-3 rounded-lg mb-4 text-sm md:text-base">
@@ -484,103 +470,96 @@ function Collectors() {
           </div>
         )}
 
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap gap-2 mb-4">
-          <button
-            onClick={() => setFilterStatus('all')}
-            className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-colors ${
-              filterStatus === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilterStatus('active')}
-            className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-colors ${
-              filterStatus === 'active'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Active
-          </button>
-          <button
-            onClick={() => setFilterStatus('inactive')}
-            className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-colors ${
-              filterStatus === 'inactive'
-                ? 'bg-gray-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Inactive
-          </button>
-          <button
-            onClick={() => setFilterStatus('suspended')}
-            className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-medium transition-colors ${
-              filterStatus === 'suspended'
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Suspended
-          </button>
-        </div>
+        {/* Filter, Search Bar and Add Button */}
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+          {/* Filter Dropdown */}
+          <div className="relative inline-block">
+            <div className="flex items-center gap-2">
+              <MdFilterList className="text-xl text-gray-600" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="px-4 py-2 pr-8 rounded-lg text-sm md:text-base font-medium border border-gray-300 bg-white text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-[#006fba] focus:border-transparent transition-colors appearance-none cursor-pointer"
+                style={{ minWidth: '180px' }}
+              >
+                <option value="all">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="suspended">Suspended</option>
+              </select>
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
 
-        {/* Search Bar */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search collectors..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 md:px-4 py-2 md:py-3 pl-10 md:pl-12 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-          <svg
-            className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          {/* Search Bar */}
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search collectors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-3 md:px-4 py-2 md:py-3 pl-10 md:pl-12 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-          </svg>
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            <svg
+              className="absolute left-3 md:left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              ✕
-            </button>
-          )}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Add Button */}
+          <button
+            onClick={handleOpenCreateModal}
+            className="text-white font-semibold py-2 md:py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 flex items-center justify-center gap-2 whitespace-nowrap hover:opacity-90"
+            style={{ backgroundColor: '#006fba' }}
+          >
+            <span className="text-xl">+</span>
+            <span className="hidden sm:inline">Create New Collector</span>
+            <span className="sm:hidden">New Collector</span>
+          </button>
         </div>
       </div>
 
       {/* Collectors List */}
-      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-          <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Collectors</h2>
-          <p className="text-xs md:text-sm text-gray-500">
-            Showing {filteredCollectors.length} of {collectors.length} collectors
-          </p>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+        <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Collectors</h2>
+        <p className="text-xs md:text-sm text-gray-500">
+          Showing {filteredCollectors.length} of {collectors.length} collectors
+        </p>
+      </div>
         {collectors.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">👥</div>
+            <MdPeople className="text-6xl mb-4 mx-auto" />
             <p className="text-gray-500">No collectors registered yet</p>
           </div>
         ) : filteredCollectors.length === 0 ? (
           <div className="text-center py-12">
-            <div className="text-6xl mb-4">🔍</div>
+            <MdSearch className="text-6xl mb-4 mx-auto" />
             <p className="text-gray-500">No collectors found matching your search</p>
             <button
               onClick={() => setSearchTerm('')}
-              className="mt-4 text-blue-600 hover:text-blue-700 font-medium text-sm md:text-base"
+              className="mt-4 font-medium text-sm md:text-base hover:opacity-80 transition"
+              style={{ color: '#006fba' }}
             >
               Clear search
             </button>
@@ -692,25 +671,25 @@ function Collectors() {
 
             {/* Desktop Table View */}
             <div className="hidden lg:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 overflow-hidden rounded-lg">
+              <thead style={{ backgroundColor: '#006fba' }} className="rounded-t-lg">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tl-lg">
                     Full Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Contact
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Role
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-right text-sm font-medium text-white uppercase tracking-wider rounded-tr-lg">
                     Actions
                   </th>
                 </tr>
@@ -758,7 +737,8 @@ function Collectors() {
                       <button
                         onClick={() => handleOpenEditModal(collector)}
                         disabled={loading}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
+                        className="hover:opacity-80 transition mr-3"
+                        style={{ color: '#006fba' }}
                         title="Edit collector"
                       >
                         <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -796,7 +776,6 @@ function Collectors() {
             </div>
           </>
         )}
-      </div>
 
       {/* Create/Edit Collector Modal */}
       {showModal && (
@@ -1020,9 +999,10 @@ function Collectors() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className={`flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 md:py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 text-sm md:text-base ${
+                  className={`flex-1 text-white font-semibold py-2.5 md:py-3 px-4 md:px-6 rounded-lg shadow-md transition-colors duration-200 text-sm md:text-base hover:opacity-90 ${
                     loading ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
+                  style={{ backgroundColor: '#006fba' }}
                 >
                   {loading 
                     ? (isEditMode ? 'Updating...' : 'Creating...') 
