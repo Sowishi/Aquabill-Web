@@ -213,7 +213,7 @@ function Notifications() {
       {/* Receipt View Modal */}
       {viewingReceipt && (
         <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]"
           onClick={() => setViewingReceipt(null)}
         >
           <div 

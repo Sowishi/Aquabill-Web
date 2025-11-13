@@ -19,7 +19,9 @@ function Household() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, paid, unpaid, no billing, archived
   const [formData, setFormData] = useState({
-    fullName: '',
+    firstName: '',
+    middleName: '',
+    lastName: '',
     email: '',
     contactNumber: '',
     gender: '',
@@ -162,8 +164,15 @@ function Household() {
         return userData;
       });
 
-      setUsers(usersData);
-      setFilteredUsers(usersData);
+      // Sort users by createdAt (newest first)
+      const sortedUsers = usersData.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA; // Descending order (newest first)
+      });
+
+      setUsers(sortedUsers);
+      setFilteredUsers(sortedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -187,11 +196,18 @@ function Household() {
   const validateForm = () => {
     const newErrors = {};
 
-    // Full Name validation
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-    } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = 'Full name must be at least 2 characters';
+    // First Name validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    } else if (formData.firstName.trim().length < 2) {
+      newErrors.firstName = 'First name must be at least 2 characters';
+    }
+
+    // Last Name validation
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    } else if (formData.lastName.trim().length < 2) {
+      newErrors.lastName = 'Last name must be at least 2 characters';
     }
 
     // Email validation
@@ -324,7 +340,9 @@ function Household() {
     setIsEditMode(false);
     setEditingUserId(null);
     setFormData({
-      fullName: '',
+      firstName: '',
+      middleName: '',
+      lastName: '',
       email: '',
       contactNumber: '',
       gender: '',
@@ -342,8 +360,29 @@ function Household() {
   const handleOpenEditModal = (user) => {
     setIsEditMode(true);
     setEditingUserId(user.id);
+    
+    // Split fullName into firstName, middleName, lastName
+    // Try to split intelligently - assume format: "FirstName MiddleName LastName" or "FirstName LastName"
+    const nameParts = user.fullName ? user.fullName.trim().split(/\s+/) : [];
+    let firstName = '';
+    let middleName = '';
+    let lastName = '';
+    
+    if (nameParts.length === 1) {
+      firstName = nameParts[0];
+    } else if (nameParts.length === 2) {
+      firstName = nameParts[0];
+      lastName = nameParts[1];
+    } else if (nameParts.length >= 3) {
+      firstName = nameParts[0];
+      middleName = nameParts.slice(1, -1).join(' '); // All middle parts
+      lastName = nameParts[nameParts.length - 1];
+    }
+    
     setFormData({
-      fullName: user.fullName,
+      firstName,
+      middleName,
+      lastName,
       email: user.email,
       contactNumber: user.contactNumber,
       gender: user.gender,
@@ -622,10 +661,17 @@ function Household() {
           profilePicUrl = await uploadProfilePicture(profilePicFile, editingUserId);
         }
 
+        // Concatenate name parts
+        const fullName = [
+          formData.firstName.trim(),
+          formData.middleName.trim(),
+          formData.lastName.trim()
+        ].filter(part => part.length > 0).join(' ');
+
         // Update user data in Firestore
         const userRef = doc(db, 'users', editingUserId);
         const updateData = {
-          fullName: formData.fullName,
+          fullName: fullName,
           email: formData.email,
           contactNumber: formData.contactNumber,
           gender: formData.gender,
@@ -644,7 +690,9 @@ function Household() {
 
         // Reset form
         setFormData({
-          fullName: '',
+          firstName: '',
+          middleName: '',
+          lastName: '',
           email: '',
           contactNumber: '',
           gender: '',
@@ -680,9 +728,16 @@ function Household() {
           return;
         }
 
+        // Concatenate name parts
+        const fullName = [
+          formData.firstName.trim(),
+          formData.middleName.trim(),
+          formData.lastName.trim()
+        ].filter(part => part.length > 0).join(' ');
+
         // Create user document first to get the ID
         const newUserRef = await addDoc(collection(db, 'users'), {
-          fullName: formData.fullName,
+          fullName: fullName,
           email: formData.email,
           contactNumber: formData.contactNumber,
           gender: formData.gender,
@@ -704,7 +759,7 @@ function Household() {
           profilePicUrl = await uploadProfilePicture(profilePicFile, newUserRef.id);
         } else {
           // Use default avatar from API
-          profilePicUrl = generateDefaultAvatar(formData.fullName, formData.gender);
+          profilePicUrl = generateDefaultAvatar(fullName, formData.gender);
         }
 
         // Update user with profile picture URL
@@ -716,7 +771,7 @@ function Household() {
         try {
           await sendTemporaryPasswordEmail(
             formData.email,
-            formData.fullName,
+            fullName,
             tempPassword
           );
           setSuccessMessage(
@@ -731,7 +786,9 @@ function Household() {
 
         // Reset form
         setFormData({
-          fullName: '',
+          firstName: '',
+          middleName: '',
+          lastName: '',
           email: '',
           contactNumber: '',
           gender: '',
@@ -851,7 +908,7 @@ function Household() {
       {/* Users List */}
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-          <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Users</h2>
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Accounts</h2>
           <p className="text-xs md:text-sm text-gray-500">
             Showing {filteredUsers.length} of {users.length} users
           </p>
@@ -1183,8 +1240,8 @@ function Household() {
 
       {/* Create/Edit User Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
+        <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-4 md:p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-800">
@@ -1285,25 +1342,65 @@ function Household() {
                 </div>
               </div>
 
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.fullName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter full name"
-                  disabled={loading}
-                />
-                {errors.fullName && (
-                  <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>
-                )}
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                {/* First Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.firstName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="First name"
+                    disabled={loading}
+                  />
+                  {errors.firstName && (
+                    <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                  )}
+                </div>
+
+                {/* Middle Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Middle Name
+                  </label>
+                  <input
+                    type="text"
+                    name="middleName"
+                    value={formData.middleName}
+                    onChange={handleInputChange}
+                    className="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Middle name"
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.lastName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Last name"
+                    disabled={loading}
+                  />
+                  {errors.lastName && (
+                    <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+                  )}
+                </div>
               </div>
 
               {/* Email Address */}
@@ -1459,7 +1556,7 @@ function Household() {
 
       {/* Archive Confirmation Modal */}
       {showArchiveModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-4 md:p-6">
               <div className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 mx-auto bg-gray-100 rounded-full mb-3 md:mb-4">
@@ -1502,7 +1599,7 @@ function Household() {
 
       {/* QR Code Modal */}
       {showQRModal && userForQR && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:bg-white print:relative print:p-0">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))] print:bg-white print:relative print:p-0">
           <div id="qr-printable-area" className="bg-white rounded-xl shadow-2xl max-w-lg w-full print:shadow-none print:max-w-full print:rounded-none">
             <div className="p-6 border-b border-gray-200 print:border-0 print:pb-2">
               <div className="flex justify-between items-center print:justify-center">
@@ -1600,7 +1697,7 @@ function Household() {
 
       {/* Payment History Modal */}
       {showPaymentHistoryModal && selectedUserForPaymentHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
           <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="p-6 border-b border-gray-200">
@@ -1776,7 +1873,7 @@ function Household() {
 
       {/* Consumed History Modal */}
       {showConsumedHistoryModal && selectedUserForConsumedHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
           <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="p-6 border-b border-gray-200">
