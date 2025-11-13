@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
       return { success: true }
     } 
     // Check treasurer credentials
-    else if (email === 'treasurer@admin.com' && password === 'admin123') {
+    else if (email === 'treasurer@aquabill.com' && password === 'admin123') {
       const userData = {
         email: email,
         name: 'Treasurer User',

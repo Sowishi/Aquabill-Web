@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { useAuth } from '../context/AuthContext';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -37,6 +38,7 @@ const months = [
 ];
 
 function TreasurerDashboardHome() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [totalThisMonth, setTotalThisMonth] = useState(0);
   const [totalThisYear, setTotalThisYear] = useState(0);

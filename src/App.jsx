@@ -14,6 +14,7 @@ import Notifications from './pages/Notifications'
 import BillReminders from './pages/BillReminders'
 import RateSettings from './pages/RateSettings'
 import Deposit from './pages/Deposit'
+import Remittance from './pages/Remittance'
 import { useAuth } from './context/AuthContext'
 
 // Component to conditionally render dashboard home based on role
@@ -43,6 +44,7 @@ function App() {
         >
           <Route index element={<DashboardHomeWrapper />} />
           <Route path="deposit" element={<Deposit />} />
+          <Route path="remittance" element={<Remittance />} />
           <Route path="household" element={<Household />} />
           <Route path="bill-reminders" element={<BillReminders />} />
           <Route path="collectors" element={<Collectors />} />
