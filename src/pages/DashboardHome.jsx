@@ -2,6 +2,29 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { MdHome, MdPeople, MdAnnouncement, MdCheck, MdCancel, MdArchive, MdBlock } from 'react-icons/md';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+import { Line } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 function DashboardHome() {
   const [loading, setLoading] = useState(true);
@@ -14,9 +37,13 @@ function DashboardHome() {
     activeCollectors: 0,
     inactiveCollectors: 0,
     suspendedCollectors: 0,
-    totalAnnouncements: 0
+    totalAnnouncements: 0,
+    totalCollected: 0,
+    currentWaterRate: 20.00,
+    totalBills: 0
   });
   const [recentAnnouncements, setRecentAnnouncements] = useState([]);
+  const [monthlyCollections, setMonthlyCollections] = useState([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -60,6 +87,53 @@ function DashboardHome() {
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
         .slice(0, 3);
 
+      // Fetch billing data
+      const billingsSnapshot = await getDocs(collection(db, 'billing'));
+      const billings = billingsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      // Calculate total collected (only paid billings)
+      const paidBillings = billings.filter(billing => {
+        const status = billing.status || billing.paymentStatus || (billing.paid ? 'paid' : 'unpaid');
+        return status.toLowerCase() === 'paid';
+      });
+
+      const totalCollected = paidBillings.reduce((total, billing) => {
+        const amount = parseFloat(billing.amount || billing.totalAmount || billing.billAmount || 0);
+        return total + amount;
+      }, 0);
+
+      // Calculate monthly collections
+      const monthlyData = {};
+      paidBillings.forEach(billing => {
+        const billingDate = billing.createdAt || billing.date || billing.billingDate || billing.paymentDate || '';
+        if (billingDate) {
+          const date = new Date(billingDate);
+          const monthKey = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+          const amount = parseFloat(billing.amount || billing.totalAmount || billing.billAmount || 0);
+          monthlyData[monthKey] = (monthlyData[monthKey] || 0) + amount;
+        }
+      });
+
+      // Convert to array and sort by date
+      const monthlyCollectionsArray = Object.entries(monthlyData)
+        .map(([month, total]) => {
+          // Parse month string like "November 2025" to Date
+          const [monthName, year] = month.split(' ');
+          const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+          const date = new Date(parseInt(year), monthIndex, 1);
+          return {
+            month,
+            total,
+            date
+          };
+        })
+        .sort((a, b) => a.date - b.date)
+        .map(({ month, total }) => ({ month, total }))
+        .slice(-12); // Get last 12 months
+
       setStats({
         totalHouseholds,
         paidHouseholds,
@@ -69,10 +143,14 @@ function DashboardHome() {
         activeCollectors,
         inactiveCollectors,
         suspendedCollectors,
-        totalAnnouncements: announcements.length
+        totalAnnouncements: announcements.length,
+        totalCollected,
+        currentWaterRate: 20.00,
+        totalBills: billings.length
       });
 
       setRecentAnnouncements(sortedAnnouncements);
+      setMonthlyCollections(monthlyCollectionsArray);
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -130,231 +208,177 @@ function DashboardHome() {
 
   const activeHouseholds = stats.totalHouseholds - stats.archivedHouseholds;
 
+  // Prepare chart data - use last 3 months for display
+  const displayData = monthlyCollections.slice(-3);
+  const maxAmount = Math.max(...displayData.map(m => m.total), 1) || 450000;
+
+  const chartData = {
+    labels: displayData.map(item => item.month),
+    datasets: [
+      {
+        label: 'Collection',
+        data: displayData.map(item => item.total),
+        borderColor: '#006fba',
+        backgroundColor: 'rgba(0, 111, 186, 0.1)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 5,
+        pointBackgroundColor: '#006fba',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+      },
+    ],
+  };
+
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 12,
+        titleFont: {
+          size: 14,
+        },
+        bodyFont: {
+          size: 12,
+        },
+        callbacks: {
+          label: function(context) {
+            return `₱${context.parsed.y.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          }
+        }
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: maxAmount,
+        ticks: {
+          callback: function(value) {
+            return '₱' + value.toLocaleString('en-US', { maximumFractionDigits: 0 });
+          },
+          font: {
+            size: 11,
+          },
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)',
+        },
+      },
+      x: {
+        ticks: {
+          font: {
+            size: 11,
+          },
+        },
+        grid: {
+          display: false,
+        },
+      },
+    },
+  };
+
   return (
-    <div className="space-y-4 md:space-y-6 mx-4 md:mx-6">
-      {/* Stats Grid - Households */}
-      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 px-1">Households Overview</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <div className="text-white rounded-xl p-4 md:p-6 shadow-lg" style={{ backgroundColor: '#006fba' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-white/80 text-xs md:text-sm">Total Households</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.totalHouseholds}</p>
-                <p className="text-white/80 text-xs mt-1">{activeHouseholds} active</p>
-              </div>
-              <MdHome className="text-3xl md:text-4xl" />
+    <div className="space-y-6 mx-4 md:mx-6">
+      {/* Main Dashboard Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left Section - Summary Cards */}
+        <div className="lg:col-span-2 space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {/* Total Households */}
+            <div className="bg-blue-100 rounded-xl p-3 shadow-md aspect-square flex flex-col justify-center">
+              <p className="text-gray-600 text-xs mb-1">Total Households</p>
+              <p className="text-xl font-bold text-gray-800">{stats.totalHouseholds}</p>
             </div>
-          </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-4 md:p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-xs md:text-sm">Paid</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.paidHouseholds}</p>
-                {activeHouseholds > 0 && (
-                  <p className="text-green-100 text-xs mt-1">
-                    {Math.round((stats.paidHouseholds / activeHouseholds) * 100)}% of active
-                  </p>
-                )}
-              </div>
-              <MdCheck className="text-3xl md:text-4xl" />
+            {/* Paid Accounts */}
+            <div className="bg-blue-100 rounded-xl p-3 shadow-md aspect-square flex flex-col justify-center">
+              <p className="text-gray-600 text-xs mb-1">Paid Accounts</p>
+              <p className="text-xl font-bold text-gray-800">{stats.paidHouseholds}</p>
             </div>
-          </div>
 
-          <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-xl p-4 md:p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-yellow-100 text-xs md:text-sm">Unpaid</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.unpaidHouseholds}</p>
-                {activeHouseholds > 0 && (
-                  <p className="text-yellow-100 text-xs mt-1">
-                    {Math.round((stats.unpaidHouseholds / activeHouseholds) * 100)}% of active
-                  </p>
-                )}
-              </div>
-              <MdCancel className="text-3xl md:text-4xl" />
+            {/* Unpaid Accounts */}
+            <div className="bg-blue-100 rounded-xl p-3 shadow-md aspect-square flex flex-col justify-center">
+              <p className="text-gray-600 text-xs mb-1">Unpaid Accounts</p>
+              <p className="text-xl font-bold text-gray-800">{stats.unpaidHouseholds}</p>
             </div>
-          </div>
 
-          <div className="bg-gradient-to-br from-gray-500 to-gray-600 text-white rounded-xl p-4 md:p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-100 text-xs md:text-sm">Archived</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.archivedHouseholds}</p>
-                {stats.totalHouseholds > 0 && (
-                  <p className="text-gray-100 text-xs mt-1">
-                    {Math.round((stats.archivedHouseholds / stats.totalHouseholds) * 100)}% of total
-                  </p>
-                )}
-              </div>
-              <MdArchive className="text-3xl md:text-4xl" />
+            {/* Total Collected */}
+            <div className="bg-[#006fba] rounded-xl p-3 shadow-md text-white aspect-square flex flex-col justify-center">
+              <p className="text-white/80 text-xs mb-1">Total Collected</p>
+              <p className="text-lg font-bold">₱{stats.totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Stats Grid - Collectors */}
-      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 px-1">Collectors Overview</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-xl p-4 md:p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-cyan-100 text-xs md:text-sm">Total Collectors</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.totalCollectors}</p>
-              </div>
-              <MdPeople className="text-3xl md:text-4xl" />
+            {/* Current Water Rate */}
+            <div className="bg-[#006fba] rounded-xl p-3 shadow-md text-white aspect-square flex flex-col justify-center">
+              <p className="text-white/80 text-xs mb-1">Current Water Rate</p>
+              <p className="text-lg font-bold">₱{stats.currentWaterRate.toFixed(2)} / m³</p>
             </div>
-          </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-4 md:p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-green-100 text-xs md:text-sm">Active</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.activeCollectors}</p>
-                {stats.totalCollectors > 0 && (
-                  <p className="text-green-100 text-xs mt-1">
-                    {Math.round((stats.activeCollectors / stats.totalCollectors) * 100)}% of total
-                  </p>
-                )}
-              </div>
-              <MdCheck className="text-3xl md:text-4xl" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-gray-500 to-gray-600 text-white rounded-xl p-4 md:p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-100 text-xs md:text-sm">Inactive</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.inactiveCollectors}</p>
-                {stats.totalCollectors > 0 && (
-                  <p className="text-gray-100 text-xs mt-1">
-                    {Math.round((stats.inactiveCollectors / stats.totalCollectors) * 100)}% of total
-                  </p>
-                )}
-              </div>
-              <MdCancel className="text-3xl md:text-4xl" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-red-500 to-red-600 text-white rounded-xl p-4 md:p-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-red-100 text-xs md:text-sm">Suspended</p>
-                <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{stats.suspendedCollectors}</p>
-                {stats.totalCollectors > 0 && (
-                  <p className="text-red-100 text-xs mt-1">
-                    {Math.round((stats.suspendedCollectors / stats.totalCollectors) * 100)}% of total
-                  </p>
-                )}
-              </div>
-              <MdBlock className="text-3xl md:text-4xl" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Announcements */}
-      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg md:text-xl font-bold text-gray-800">Recent Announcements</h2>
-          <span className="text-xs md:text-sm text-gray-500">{stats.totalAnnouncements} total</span>
-        </div>
-        
-        {recentAnnouncements.length === 0 ? (
-          <div className="text-center py-8">
-            <MdAnnouncement className="text-4xl md:text-5xl mb-3 mx-auto" />
-            <p className="text-sm md:text-base text-gray-500">No announcements yet</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {recentAnnouncements.map((announcement) => (
-              <div key={announcement.id} className="flex items-start justify-between py-3 border-b last:border-b-0 gap-4">
-                <div className="flex items-start space-x-3 flex-1 min-w-0">
-                  <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <MdAnnouncement />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm md:text-base text-gray-800 truncate">{announcement.title}</p>
-                    <p className="text-xs md:text-sm text-gray-500 line-clamp-2 mt-1">{announcement.body}</p>
-                  </div>
-                </div>
-                <span className="text-xs md:text-sm text-gray-400 whitespace-nowrap flex-shrink-0">
-                  {formatDate(announcement.createdAt)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Quick Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-bold text-gray-800 mb-4">Payment Status</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm md:text-base text-gray-600">Paid Households</span>
-              <div className="flex items-center gap-2">
-                <div className="w-24 md:w-32 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${activeHouseholds > 0 ? (stats.paidHouseholds / activeHouseholds) * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm md:text-base font-semibold text-gray-800 w-12 text-right">
-                  {activeHouseholds > 0 ? Math.round((stats.paidHouseholds / activeHouseholds) * 100) : 0}%
-                </span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm md:text-base text-gray-600">Unpaid Households</span>
-              <div className="flex items-center gap-2">
-                <div className="w-24 md:w-32 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-yellow-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${activeHouseholds > 0 ? (stats.unpaidHouseholds / activeHouseholds) * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm md:text-base font-semibold text-gray-800 w-12 text-right">
-                  {activeHouseholds > 0 ? Math.round((stats.unpaidHouseholds / activeHouseholds) * 100) : 0}%
-                </span>
-              </div>
+            {/* Bills */}
+            <div className="bg-[#006fba] rounded-xl p-3 shadow-md text-white aspect-square flex flex-col justify-center">
+              <p className="text-white/80 text-xs mb-1">Bills</p>
+              <p className="text-lg font-bold">{stats.totalBills}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-bold text-gray-800 mb-4">Collector Status</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm md:text-base text-gray-600">Active Collectors</span>
-              <div className="flex items-center gap-2">
-                <div className="w-24 md:w-32 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.totalCollectors > 0 ? (stats.activeCollectors / stats.totalCollectors) * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm md:text-base font-semibold text-gray-800 w-12 text-right">
-                  {stats.totalCollectors > 0 ? Math.round((stats.activeCollectors / stats.totalCollectors) * 100) : 0}%
-                </span>
+        {/* Right Section - Chart and Table */}
+        <div className="lg:col-span-3 space-y-6">
+          {/* Monthly Collection Chart */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-6">Monthly Collection Chart</h2>
+            {displayData.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <p className="text-gray-400">No collection data available</p>
               </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm md:text-base text-gray-600">Inactive/Suspended</span>
-              <div className="flex items-center gap-2">
-                <div className="w-24 md:w-32 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-red-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${stats.totalCollectors > 0 ? ((stats.inactiveCollectors + stats.suspendedCollectors) / stats.totalCollectors) * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm md:text-base font-semibold text-gray-800 w-12 text-right">
-                  {stats.totalCollectors > 0 ? Math.round(((stats.inactiveCollectors + stats.suspendedCollectors) / stats.totalCollectors) * 100) : 0}%
-                </span>
+            ) : (
+              <div className="h-64">
+                <Line data={chartData} options={chartOptions} />
               </div>
+            )}
+          </div>
+
+          {/* Monthly Collection History Table */}
+          <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-4">Monthly Collection History</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 overflow-hidden rounded-lg">
+                <thead style={{ backgroundColor: '#006fba' }} className="rounded-t-lg">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tl-lg">
+                      Month
+                    </th>
+                    <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tr-lg">
+                      Total Collected
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {monthlyCollections.length === 0 ? (
+                    <tr>
+                      <td colSpan="2" className="px-6 py-4 text-center text-gray-500">
+                        No collection data available
+                      </td>
+                    </tr>
+                  ) : (
+                    monthlyCollections.map((item, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {item.month}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          ₱{item.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
