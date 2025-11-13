@@ -135,13 +135,32 @@ function Reports() {
     return user?.meterNumber || billing.meterNumber || 'N/A';
   };
 
+  const getFilterPeriod = () => {
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    if (filterMonth && filterYear) {
+      const monthIndex = parseInt(filterMonth) - 1;
+      return `${monthNames[monthIndex]} ${filterYear}`;
+    } else if (filterYear) {
+      return filterYear;
+    } else if (filterMonth) {
+      const monthIndex = parseInt(filterMonth) - 1;
+      return monthNames[monthIndex];
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6 mx-4 md:mx-6">
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Reports Summary</h1>
+      {/* Search and Filters Container */}
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6">Reports Summary</h1>
         
         {/* Search and Filters Row */}
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           {/* Search by User Name */}
           <div className="md:col-span-4">
             <div className="relative">
@@ -199,21 +218,27 @@ function Reports() {
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Total Collected Overall */}
-        <div className="mb-6 p-4 bg-[#006fba] rounded-lg">
-          <div className="flex items-center justify-between">
+      {/* Total Collected Overall Container */}
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+        <div className="p-4 rounded-lg">
+          <div className="flex items-center justify-center text-center">
             <div>
-              <p className="text-white text-sm md:text-base opacity-90">Total Collected Overall</p>
-              <p className="text-white text-2xl md:text-3xl font-bold mt-1">
+           
+              <p className="text-black text-2xl md:text-3xl font-bold mt-1">
                 ₱{getTotalCollected().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
+              <p className="text-black text-sm md:text-base opacity-90">
+                Total Collected Overall{getFilterPeriod() ? ` (${getFilterPeriod()})` : ''}
+              </p>
             </div>
-            <MdAssessment className="text-white text-4xl md:text-5xl opacity-80" />
           </div>
         </div>
+      </div>
 
-        {/* Table */}
+      {/* Table Container */}
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="text-gray-500">Loading reports...</div>
