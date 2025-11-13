@@ -8,9 +8,6 @@ function Collectors() {
   const [showModal, setShowModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingCollectorId, setEditingCollectorId] = useState(null);
-  const [showStatusModal, setShowStatusModal] = useState(false);
-  const [collectorToChangeStatus, setCollectorToChangeStatus] = useState(null);
-  const [newStatus, setNewStatus] = useState('');
   const [loading, setLoading] = useState(false);
   const [collectors, setCollectors] = useState([]);
   const [filteredCollectors, setFilteredCollectors] = useState([]);
@@ -255,25 +252,18 @@ function Collectors() {
     setShowModal(true);
   };
 
-  const handleOpenStatusModal = (collector, status) => {
-    setCollectorToChangeStatus(collector);
-    setNewStatus(status);
-    setShowStatusModal(true);
-  };
-
-  const handleChangeStatus = async () => {
-    if (!collectorToChangeStatus) return;
+  const handleToggleStatus = async (collector) => {
+    if (!collector) return;
 
     setLoading(true);
     try {
-      const collectorRef = doc(db, 'users', collectorToChangeStatus.id);
+      const newStatus = collector.status === 'active' ? 'suspended' : 'active';
+      const collectorRef = doc(db, 'users', collector.id);
       await updateDoc(collectorRef, {
         status: newStatus,
         statusUpdatedAt: new Date().toISOString()
       });
-      setSuccessMessage(`Collector "${collectorToChangeStatus.fullName}" status changed to ${newStatus}.`);
-      setShowStatusModal(false);
-      setCollectorToChangeStatus(null);
+      setSuccessMessage(`Collector "${collector.fullName}" status changed to ${newStatus}.`);
       fetchCollectors();
       
       setTimeout(() => {
@@ -621,49 +611,26 @@ function Collectors() {
                       </svg>
                       Edit
                     </button>
-                    {collector.status === 'active' ? (
-                      <>
-                        <button
-                          onClick={() => handleOpenStatusModal(collector, 'inactive')}
-                          disabled={loading}
-                          className="flex-1 bg-gray-50 text-gray-700 hover:bg-gray-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Set Inactive
-                        </button>
-                        <button
-                          onClick={() => handleOpenStatusModal(collector, 'suspended')}
-                          disabled={loading}
-                          className="flex-1 bg-red-50 text-red-700 hover:bg-red-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Suspend
-                        </button>
-                      </>
-                    ) : collector.status === 'inactive' ? (
-                      <>
-                        <button
-                          onClick={() => handleOpenStatusModal(collector, 'active')}
-                          disabled={loading}
-                          className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Activate
-                        </button>
-                        <button
-                          onClick={() => handleOpenStatusModal(collector, 'suspended')}
-                          disabled={loading}
-                          className="flex-1 bg-red-50 text-red-700 hover:bg-red-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Suspend
-                        </button>
-                      </>
-                    ) : (
+                    <div className="flex items-center gap-2 px-3">
+                      <span className="text-xs text-gray-600 whitespace-nowrap">
+                        {collector.status === 'active' ? 'Active' : 'Suspended'}
+                      </span>
                       <button
-                        onClick={() => handleOpenStatusModal(collector, 'active')}
+                        onClick={() => handleToggleStatus(collector)}
                         disabled={loading}
-                        className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#006fba] focus:ring-offset-2 ${
+                          collector.status === 'active' ? 'bg-[#006fba]' : 'bg-gray-300'
+                        } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                        role="switch"
+                        aria-checked={collector.status === 'active'}
                       >
-                        Activate
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            collector.status === 'active' ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
                       </button>
-                    )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -734,40 +701,38 @@ function Collectors() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleOpenEditModal(collector)}
-                        disabled={loading}
-                        className="hover:opacity-80 transition mr-3"
-                        style={{ color: '#006fba' }}
-                        title="Edit collector"
-                      >
-                        <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
-                      {collector.status === 'active' ? (
+                      <div className="flex items-center justify-end gap-3">
                         <button
-                          onClick={() => handleOpenStatusModal(collector, 'suspended')}
+                          onClick={() => handleOpenEditModal(collector)}
                           disabled={loading}
-                          className="text-red-600 hover:text-red-900"
-                          title="Suspend collector"
+                          className="hover:opacity-80 transition"
+                          style={{ backgroundColor: '#006fba', color: 'white', padding: '6px', borderRadius: '6px' }}
+                          title="Edit collector"
                         >
-                          <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
-                      ) : (
-                        <button
-                          onClick={() => handleOpenStatusModal(collector, 'active')}
-                          disabled={loading}
-                          className="text-green-600 hover:text-green-900"
-                          title="Activate collector"
-                        >
-                          <svg className="h-5 w-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </button>
-                      )}
+                        <div className="flex items-center gap-2">
+                          
+                          <button
+                            onClick={() => handleToggleStatus(collector)}
+                            disabled={loading}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#006fba] focus:ring-offset-2 ${
+                              collector.status === 'active' ? 'bg-[#006fba]' : 'bg-gray-300'
+                            } ${loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                            role="switch"
+                            aria-checked={collector.status === 'active'}
+                            title={collector.status === 'active' ? 'Click to suspend' : 'Click to activate'}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                collector.status === 'active' ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1032,59 +997,6 @@ function Collectors() {
         </div>
       )}
 
-      {/* Status Change Confirmation Modal */}
-      {showStatusModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-            <div className="p-4 md:p-6">
-              <div className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 mx-auto rounded-full mb-3 md:mb-4 ${
-                newStatus === 'active' ? 'bg-green-100' : newStatus === 'suspended' ? 'bg-red-100' : 'bg-gray-100'
-              }`}>
-                <svg className={`h-5 w-5 md:h-6 md:w-6 ${
-                  newStatus === 'active' ? 'text-green-600' : newStatus === 'suspended' ? 'text-red-600' : 'text-gray-600'
-                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {newStatus === 'active' ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  ) : newStatus === 'suspended' ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  )}
-                </svg>
-              </div>
-              <h3 className="text-base md:text-lg font-bold text-gray-900 text-center mb-2">
-                Change Collector Status
-              </h3>
-              <p className="text-xs md:text-sm text-gray-500 text-center mb-4 md:mb-6">
-                Are you sure you want to change <span className="font-semibold text-gray-900">{collectorToChangeStatus?.fullName}</span>'s status to <span className="font-semibold">{newStatus}</span>?
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={() => {
-                    setShowStatusModal(false);
-                    setCollectorToChangeStatus(null);
-                  }}
-                  disabled={loading}
-                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 text-sm md:text-base"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleChangeStatus}
-                  disabled={loading}
-                  className={`flex-1 ${
-                    newStatus === 'active' ? 'bg-green-600 hover:bg-green-700' : newStatus === 'suspended' ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-600 hover:bg-gray-700'
-                  } text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 text-sm md:text-base ${
-                    loading ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {loading ? 'Changing...' : 'Confirm'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
