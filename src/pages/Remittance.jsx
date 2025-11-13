@@ -91,6 +91,12 @@ function Remittance() {
 
       // Get available years from deposits
       const yearsSet = new Set();
+      
+      // Populate years from 2025 down to 2020
+      for (let year = 2025; year >= 2020; year--) {
+        yearsSet.add(year);
+      }
+      
       treasurerDeposits.forEach(deposit => {
         const depositDate = deposit.depositDate || deposit.createdAt || '';
         if (depositDate) {

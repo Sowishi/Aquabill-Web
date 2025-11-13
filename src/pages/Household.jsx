@@ -573,12 +573,20 @@ function Household() {
   // Get unique years from history
   const getAvailableYears = (history) => {
     const years = new Set();
+    
+    // Populate years from 2025 down to 2020
+    for (let year = 2025; year >= 2020; year--) {
+      years.add(year.toString());
+    }
+    
+    // Also add years from history data
     history.forEach(billing => {
       const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
       if (billingDate) {
         years.add(new Date(billingDate).getFullYear().toString());
       }
     });
+    
     return Array.from(years).sort((a, b) => parseInt(b) - parseInt(a));
   };
 

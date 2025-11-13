@@ -122,6 +122,11 @@ function TreasurerDashboardHome() {
       let overallTotal = 0;
       const yearsSet = new Set();
 
+      // Populate years from 2025 down to 2020
+      for (let year = 2025; year >= 2020; year--) {
+        yearsSet.add(year);
+      }
+
       paidBillings.forEach(billing => {
         const billingDate = billing.createdAt || billing.date || billing.billingDate || billing.paymentDate || '';
         const amount = parseFloat(billing.amount || billing.totalAmount || billing.billAmount || 0);

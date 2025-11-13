@@ -53,7 +53,8 @@ function Dashboard() {
       return [
         { name: 'Dashboard', path: '/dashboard', icon: MdDashboard },
         { name: 'Deposit', path: '/dashboard/deposit', icon: MdAccountBalance },
-        { name: 'Remittance', path: '/dashboard/remittance', icon: MdPayment }
+        { name: 'Remittance', path: '/dashboard/remittance', icon: MdPayment },
+        { name: 'Settings', path: '/dashboard/settings', icon: MdSettings }
       ]
     }
     
@@ -66,7 +67,8 @@ function Dashboard() {
       { name: 'Announcements', path: '/dashboard/announcements', icon: MdAnnouncement },
       { name: 'Rate Settings', path: '/dashboard/rate-settings', icon: MdSettings },
       { name: 'Reports', path: '/dashboard/reports', icon: MdAssessment },
-      { name: 'Notifications', path: '/dashboard/notifications', icon: MdNotifications }
+      { name: 'Notifications', path: '/dashboard/notifications', icon: MdNotifications },
+      { name: 'Settings', path: '/dashboard/settings', icon: MdSettings }
     ]
   }
 
@@ -134,13 +136,21 @@ function Dashboard() {
         {/* User Section */}
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center">
-              <FaUser className="text-lg" />
+            <div className="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center bg-white/20 flex-shrink-0">
+              {user?.profilePicture ? (
+                <img 
+                  src={user.profilePicture} 
+                  alt="Profile" 
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <FaUser className="text-lg" />
+              )}
             </div>
             {isSidebarOpen && (
-              <div className="flex-1">
-                <p className="font-medium text-sm">{user?.name || 'Admin User'}</p>
-                <p className="text-xs text-white/70">{user?.email || 'admin@aquabill.com'}</p>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm truncate">{user?.name || 'Admin User'}</p>
+                <p className="text-xs text-white/70 truncate">{user?.email || 'admin@aquabill.com'}</p>
               </div>
             )}
           </div>
@@ -163,10 +173,18 @@ function Dashboard() {
           <div className="relative" ref={dropdownRef}>
             <button 
               onClick={() => setShowUserDropdown(!showUserDropdown)}
-              className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition cursor-pointer"
+              className="h-10 w-10 rounded-full overflow-hidden flex items-center justify-center hover:bg-white/30 transition cursor-pointer bg-white/20"
               title="User Menu"
             >
-              <FaUser className="text-lg text-white" />
+              {user?.profilePicture ? (
+                <img 
+                  src={user.profilePicture} 
+                  alt="Profile" 
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <FaUser className="text-lg text-white" />
+              )}
             </button>
             
             {/* User Dropdown */}
