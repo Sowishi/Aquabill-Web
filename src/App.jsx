@@ -12,6 +12,7 @@ import Reports from './pages/Reports'
 import Notifications from './pages/Notifications'
 import Payment from './pages/Payment'
 import BillReminders from './pages/BillReminders'
+import RateSettings from './pages/RateSettings'
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="bill-reminders" element={<BillReminders />} />
           <Route path="collectors" element={<Collectors />} />
           <Route path="announcements" element={<Announcements />} />
+          <Route path="rate-settings" element={<RateSettings />} />
           <Route path="reports" element={<Reports />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="payment" element={<Payment />} />

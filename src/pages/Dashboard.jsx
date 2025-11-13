@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import aquabillLogo from '../assets/aquabill-logo.png'
-import { MdDashboard, MdHome, MdPeople, MdAnnouncement, MdAssessment, MdNotifications, MdPayment, MdChevronLeft, MdChevronRight, MdMenu, MdLogout, MdEmail } from 'react-icons/md'
+import { MdDashboard, MdHome, MdPeople, MdAnnouncement, MdAssessment, MdNotifications, MdPayment, MdChevronLeft, MdChevronRight, MdMenu, MdLogout, MdEmail, MdSettings } from 'react-icons/md'
 import { FaUser } from 'react-icons/fa'
 
 function Dashboard() {
@@ -51,6 +51,7 @@ function Dashboard() {
     { name: 'Bill Reminders', path: '/dashboard/bill-reminders', icon: MdEmail },
     { name: 'Collectors', path: '/dashboard/collectors', icon: MdPeople },
     { name: 'Announcements', path: '/dashboard/announcements', icon: MdAnnouncement },
+    { name: 'Rate Settings', path: '/dashboard/rate-settings', icon: MdSettings },
     { name: 'Reports', path: '/dashboard/reports', icon: MdAssessment },
     { name: 'Notifications', path: '/dashboard/notifications', icon: MdNotifications },
     { name: 'Payment', path: '/dashboard/payment', icon: MdPayment }

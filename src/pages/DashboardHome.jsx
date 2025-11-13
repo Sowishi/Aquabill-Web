@@ -136,6 +136,20 @@ function DashboardHome() {
         .map(({ month, total }) => ({ month, total }))
         .slice(-12); // Get last 12 months
 
+      // Fetch current water rate from settings
+      let currentWaterRate = 20.00; // Default value
+      try {
+        const settingsRef = collection(db, 'settings');
+        const settingsSnapshot = await getDocs(settingsRef);
+        if (!settingsSnapshot.empty) {
+          const settingsDoc = settingsSnapshot.docs[0];
+          const settingsData = settingsDoc.data();
+          currentWaterRate = parseFloat(settingsData.waterRate || settingsData.currentWaterRate || 20.00);
+        }
+      } catch (error) {
+        console.error('Error fetching water rate:', error);
+      }
+
       setStats({
         totalHouseholds,
         paidHouseholds,
@@ -147,7 +161,7 @@ function DashboardHome() {
         suspendedCollectors,
         totalAnnouncements: announcements.length,
         totalCollected,
-        currentWaterRate: 20.00,
+        currentWaterRate,
         totalBills: billings.length
       });
 
