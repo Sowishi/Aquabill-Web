@@ -250,6 +250,9 @@ function RateSettings() {
                 })}
               </tbody>
             </table>
+            
+
+            
           </div>
         )}
       </div>

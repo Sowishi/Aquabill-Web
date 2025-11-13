@@ -10,7 +10,6 @@ import Collectors from './pages/Collectors'
 import Announcements from './pages/Announcements'
 import Reports from './pages/Reports'
 import Notifications from './pages/Notifications'
-import Payment from './pages/Payment'
 import BillReminders from './pages/BillReminders'
 import RateSettings from './pages/RateSettings'
 
@@ -35,7 +34,6 @@ function App() {
           <Route path="rate-settings" element={<RateSettings />} />
           <Route path="reports" element={<Reports />} />
           <Route path="notifications" element={<Notifications />} />
-          <Route path="payment" element={<Payment />} />
         </Route>
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
