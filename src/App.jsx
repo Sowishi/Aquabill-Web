@@ -11,6 +11,7 @@ import Announcements from './pages/Announcements'
 import Reports from './pages/Reports'
 import Notifications from './pages/Notifications'
 import Payment from './pages/Payment'
+import BillReminders from './pages/BillReminders'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         >
           <Route index element={<DashboardHome />} />
           <Route path="household" element={<Household />} />
+          <Route path="bill-reminders" element={<BillReminders />} />
           <Route path="collectors" element={<Collectors />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="reports" element={<Reports />} />
