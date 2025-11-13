@@ -20,18 +20,33 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login = (email, password) => {
-    // Check credentials
+    // Check admin credentials
     if (email === 'admin@aquabill.com' && password === 'admin123') {
       const userData = {
         email: email,
-        name: 'Admin User'
+        name: 'Admin User',
+        role: 'admin'
       }
       setIsAuthenticated(true)
       setUser(userData)
       localStorage.setItem('isAuthenticated', 'true')
       localStorage.setItem('user', JSON.stringify(userData))
       return { success: true }
-    } else {
+    } 
+    // Check treasurer credentials
+    else if (email === 'treasurer@admin.com' && password === 'admin123') {
+      const userData = {
+        email: email,
+        name: 'Treasurer User',
+        role: 'treasurer'
+      }
+      setIsAuthenticated(true)
+      setUser(userData)
+      localStorage.setItem('isAuthenticated', 'true')
+      localStorage.setItem('user', JSON.stringify(userData))
+      return { success: true }
+    } 
+    else {
       return { success: false, error: 'Invalid email or password' }
     }
   }

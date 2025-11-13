@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import aquabillLogo from '../assets/aquabill-logo.png'
-import { MdDashboard, MdHome, MdPeople, MdAnnouncement, MdAssessment, MdNotifications, MdChevronLeft, MdChevronRight, MdMenu, MdLogout, MdEmail, MdSettings } from 'react-icons/md'
+import { MdDashboard, MdHome, MdPeople, MdAnnouncement, MdAssessment, MdNotifications, MdChevronLeft, MdChevronRight, MdMenu, MdLogout, MdEmail, MdSettings, MdAccountBalance } from 'react-icons/md'
 import { FaUser } from 'react-icons/fa'
 
 function Dashboard() {
@@ -45,16 +45,31 @@ function Dashboard() {
     setShowLogoutModal(false)
   }
 
-  const navItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: MdDashboard },
-    { name: 'Household', path: '/dashboard/household', icon: MdHome },
-    { name: 'Bill Reminders', path: '/dashboard/bill-reminders', icon: MdEmail },
-    { name: 'Collectors', path: '/dashboard/collectors', icon: MdPeople },
-    { name: 'Announcements', path: '/dashboard/announcements', icon: MdAnnouncement },
-    { name: 'Rate Settings', path: '/dashboard/rate-settings', icon: MdSettings },
-    { name: 'Reports', path: '/dashboard/reports', icon: MdAssessment },
-    { name: 'Notifications', path: '/dashboard/notifications', icon: MdNotifications }
-  ]
+  // Get navigation items based on user role
+  const getNavItems = () => {
+    const userRole = user?.role || 'admin'
+    
+    if (userRole === 'treasurer') {
+      return [
+        { name: 'Dashboard', path: '/dashboard', icon: MdDashboard },
+        { name: 'Deposit', path: '/dashboard/deposit', icon: MdAccountBalance }
+      ]
+    }
+    
+    // Admin navigation items
+    return [
+      { name: 'Dashboard', path: '/dashboard', icon: MdDashboard },
+      { name: 'Household', path: '/dashboard/household', icon: MdHome },
+      { name: 'Bill Reminders', path: '/dashboard/bill-reminders', icon: MdEmail },
+      { name: 'Collectors', path: '/dashboard/collectors', icon: MdPeople },
+      { name: 'Announcements', path: '/dashboard/announcements', icon: MdAnnouncement },
+      { name: 'Rate Settings', path: '/dashboard/rate-settings', icon: MdSettings },
+      { name: 'Reports', path: '/dashboard/reports', icon: MdAssessment },
+      { name: 'Notifications', path: '/dashboard/notifications', icon: MdNotifications }
+    ]
+  }
+
+  const navItems = getNavItems()
 
   // Get current route name based on pathname
   const getCurrentRouteName = () => {

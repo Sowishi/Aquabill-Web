@@ -35,16 +35,21 @@ function Login() {
   }
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-8"
-      style={{
-        backgroundImage: `url(${bgImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl flex overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-8 relative">
+      {/* Blurred Background */}
+      <div 
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `url(${bgImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          filter: 'blur(8px)',
+          transform: 'scale(1.1)'
+        }}
+      />
+      {/* Content */}
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl flex overflow-hidden relative z-10">
         {/* Left side - Logo */}
         <div className="w-1/2 bg-white flex items-center justify-center p-12">
           <div className="text-center">
