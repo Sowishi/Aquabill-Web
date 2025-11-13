@@ -8,18 +8,20 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
   Filler
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Line, Doughnut } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -287,42 +289,96 @@ function DashboardHome() {
       {/* Main Dashboard Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Left Section - Summary Cards */}
-        <div className="lg:col-span-2 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="lg:col-span-2 space-y-2">
+          <div className="grid grid-cols-2 gap-2">
             {/* Total Households */}
-            <div className="bg-blue-100 rounded-xl p-3 shadow-md aspect-square flex flex-col justify-center">
-              <p className="text-gray-600 text-xs mb-1">Total Households</p>
-              <p className="text-xl font-bold text-gray-800">{stats.totalHouseholds}</p>
+            <div className="bg-blue-100 rounded-lg p-2 shadow-md flex flex-col justify-center items-center" style={{ width: '250px', height: '250px' }}>
+              <p className="text-gray-600 text-[10px] mb-0.5">Total Households</p>
+              <p className="text-lg font-bold text-gray-800">{stats.totalHouseholds}</p>
             </div>
 
             {/* Paid Accounts */}
-            <div className="bg-blue-100 rounded-xl p-3 shadow-md aspect-square flex flex-col justify-center">
-              <p className="text-gray-600 text-xs mb-1">Paid Accounts</p>
-              <p className="text-xl font-bold text-gray-800">{stats.paidHouseholds}</p>
+            <div className="bg-blue-100 rounded-lg p-2 shadow-md flex flex-col justify-center items-center" style={{ width: '250px', height: '250px' }}>
+              <p className="text-gray-600 text-[10px] mb-0.5">Paid Accounts</p>
+              <p className="text-lg font-bold text-gray-800">{stats.paidHouseholds}</p>
             </div>
 
             {/* Unpaid Accounts */}
-            <div className="bg-blue-100 rounded-xl p-3 shadow-md aspect-square flex flex-col justify-center">
-              <p className="text-gray-600 text-xs mb-1">Unpaid Accounts</p>
-              <p className="text-xl font-bold text-gray-800">{stats.unpaidHouseholds}</p>
+            <div className="bg-blue-100 rounded-lg p-2 shadow-md flex flex-col justify-center items-center" style={{ width: '250px', height: '250px' }}>
+              <p className="text-gray-600 text-[10px] mb-0.5">Unpaid Accounts</p>
+              <p className="text-lg font-bold text-gray-800">{stats.unpaidHouseholds}</p>
             </div>
 
             {/* Total Collected */}
-            <div className="bg-[#006fba] rounded-xl p-3 shadow-md text-white aspect-square flex flex-col justify-center">
-              <p className="text-white/80 text-xs mb-1">Total Collected</p>
-              <p className="text-lg font-bold">₱{stats.totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <div className="bg-[#006fba] rounded-lg p-2 shadow-md text-white flex flex-col justify-center items-center" style={{ width: '250px', height: '250px' }}>
+              <p className="text-white/80 text-[10px] mb-0.5">Total Collected</p>
+              <p className="text-base font-bold">₱{stats.totalCollected.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </div>
 
             {/* Current Water Rate */}
-            <div className="bg-[#006fba] rounded-xl p-3 shadow-md text-white aspect-square flex flex-col justify-center">
-              <p className="text-white/80 text-xs mb-1">Current Water Rate</p>
-              <p className="text-lg font-bold">₱{stats.currentWaterRate.toFixed(2)} / m³</p>
+            <div className="bg-[#006fba] rounded-lg p-2 shadow-md text-white flex flex-col justify-center items-center" style={{ width: '250px', height: '250px' }}>
+              <p className="text-white/80 text-[10px] mb-0.5">Current Water Rate</p>
+              <p className="text-base font-bold">₱{stats.currentWaterRate.toFixed(2)} / m³</p>
             </div>
 
             {/* Bills */}
-            <div className="bg-[#006fba] rounded-xl p-3 shadow-md text-white aspect-square flex flex-col justify-center">
-              <p className="text-white/80 text-xs mb-1">Bills</p>
-              <p className="text-lg font-bold">{stats.totalBills}</p>
+            <div className="bg-[#006fba] rounded-lg p-2 shadow-md text-white flex flex-col justify-center items-center" style={{ width: '250px', height: '250px' }}>
+              <p className="text-white/80 text-[10px] mb-0.5">Bills</p>
+              <p className="text-base font-bold">{stats.totalBills}</p>
+            </div>
+          </div>
+
+          {/* Pie Chart - Paid vs Unpaid Accounts */}
+          <div className="bg-white rounded-xl shadow-md p-4 mt-4">
+            <h3 className="text-base font-bold text-gray-800 mb-4 text-center">Payment Status</h3>
+            <div className="flex justify-center">
+              <div className="w-48 h-48">
+                <Doughnut 
+                  data={{
+                    labels: ['Paid', 'Unpaid'],
+                    datasets: [
+                      {
+                        data: [stats.paidHouseholds, stats.unpaidHouseholds],
+                        backgroundColor: [
+                          'rgba(34, 197, 94, 0.8)',
+                          'rgba(239, 68, 68, 0.8)'
+                        ],
+                        borderColor: [
+                          'rgb(34, 197, 94)',
+                          'rgb(239, 68, 68)'
+                        ],
+                        borderWidth: 2,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                      legend: {
+                        position: 'bottom',
+                        labels: {
+                          padding: 15,
+                          font: {
+                            size: 12,
+                          },
+                        },
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${label}: ${value} (${percentage}%)`;
+                          }
+                        }
+                      },
+                    },
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
