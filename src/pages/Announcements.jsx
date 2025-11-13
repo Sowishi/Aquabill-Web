@@ -302,12 +302,13 @@ function Announcements() {
       </div>
 
       {/* Announcements List */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-        <h2 className="text-lg md:text-xl font-bold text-gray-800">All Announcements</h2>
-        <p className="text-xs md:text-sm text-gray-500">
-          {filteredAnnouncements.length} {filteredAnnouncements.length === 1 ? 'announcement' : 'announcements'}
-        </p>
-      </div>
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">All Announcements</h2>
+          <p className="text-xs md:text-sm text-gray-500">
+            {filteredAnnouncements.length} {filteredAnnouncements.length === 1 ? 'announcement' : 'announcements'}
+          </p>
+        </div>
 
         {announcements.length === 0 ? (
           <div className="text-center py-12">
@@ -382,6 +383,7 @@ function Announcements() {
             ))}
           </div>
         )}
+      </div>
 
       {/* Create/Edit Announcement Modal */}
       {showModal && (

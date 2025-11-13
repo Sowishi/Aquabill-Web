@@ -133,7 +133,7 @@ function DashboardHome() {
   return (
     <div className="space-y-4 md:space-y-6 mx-4 md:mx-6">
       {/* Stats Grid - Households */}
-      <div>
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
         <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 px-1">Households Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <div className="text-white rounded-xl p-4 md:p-6 shadow-lg" style={{ backgroundColor: '#006fba' }}>
@@ -195,7 +195,7 @@ function DashboardHome() {
       </div>
 
       {/* Stats Grid - Collectors */}
-      <div>
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
         <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 md:mb-4 px-1">Collectors Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <div className="bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-xl p-4 md:p-6 shadow-lg">

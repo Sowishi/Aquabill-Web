@@ -849,12 +849,13 @@ function Household() {
       </div>
 
       {/* Users List */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-        <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Users</h2>
-        <p className="text-xs md:text-sm text-gray-500">
-          Showing {filteredUsers.length} of {users.length} users
-        </p>
-      </div>
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Users</h2>
+          <p className="text-xs md:text-sm text-gray-500">
+            Showing {filteredUsers.length} of {users.length} users
+          </p>
+        </div>
       {users.length === 0 ? (
         <div className="text-center py-12">
           <MdHome className="text-6xl mb-4 mx-auto" />
@@ -1178,6 +1179,7 @@ function Household() {
             </div>
           </>
         )}
+      </div>
 
       {/* Create/Edit User Modal */}
       {showModal && (

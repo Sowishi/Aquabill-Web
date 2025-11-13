@@ -531,12 +531,13 @@ function Collectors() {
       </div>
 
       {/* Collectors List */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-        <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Collectors</h2>
-        <p className="text-xs md:text-sm text-gray-500">
-          Showing {filteredCollectors.length} of {collectors.length} collectors
-        </p>
-      </div>
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Collectors</h2>
+          <p className="text-xs md:text-sm text-gray-500">
+            Showing {filteredCollectors.length} of {collectors.length} collectors
+          </p>
+        </div>
         {collectors.length === 0 ? (
           <div className="text-center py-12">
             <MdPeople className="text-6xl mb-4 mx-auto" />
@@ -741,6 +742,7 @@ function Collectors() {
             </div>
           </>
         )}
+      </div>
 
       {/* Create/Edit Collector Modal */}
       {showModal && (
