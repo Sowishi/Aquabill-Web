@@ -26,7 +26,8 @@ function Household() {
     contactNumber: '',
     gender: '',
     age: '',
-    meterNumber: ''
+    meterNumber: '',
+    accountNumber: ''
   });
   const [profilePicFile, setProfilePicFile] = useState(null);
   const [profilePicPreview, setProfilePicPreview] = useState(null);
@@ -241,6 +242,11 @@ function Household() {
       newErrors.meterNumber = 'Meter number is required';
     }
 
+    // Account Number validation
+    if (!formData.accountNumber.trim()) {
+      newErrors.accountNumber = 'Account number is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -347,7 +353,8 @@ function Household() {
       contactNumber: '',
       gender: '',
       age: '',
-      meterNumber: ''
+      meterNumber: '',
+      accountNumber: ''
     });
     setProfilePicFile(null);
     setProfilePicPreview(null);
@@ -387,7 +394,8 @@ function Household() {
       contactNumber: user.contactNumber,
       gender: user.gender,
       age: user.age.toString(),
-      meterNumber: user.meterNumber
+      meterNumber: user.meterNumber,
+      accountNumber: user.accountNumber || ''
     });
     setProfilePicFile(null);
     setProfilePicPreview(user.profilePicUrl || null);
@@ -685,6 +693,7 @@ function Household() {
           gender: formData.gender,
           age: parseInt(formData.age),
           meterNumber: formData.meterNumber,
+          accountNumber: formData.accountNumber,
           updatedAt: new Date().toISOString()
         };
 
@@ -751,6 +760,7 @@ function Household() {
           gender: formData.gender,
           age: parseInt(formData.age),
           meterNumber: formData.meterNumber,
+          accountNumber: formData.accountNumber,
           password: tempPassword,
           passwordChanged: false,
           role: 'resident',
@@ -1521,6 +1531,27 @@ function Household() {
                 />
                 {errors.meterNumber && (
                   <p className="text-red-500 text-xs mt-1">{errors.meterNumber}</p>
+                )}
+              </div>
+
+              {/* Account Number */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Account Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="accountNumber"
+                  value={formData.accountNumber}
+                  onChange={handleInputChange}
+                  className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                    errors.accountNumber ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Enter account number"
+                  disabled={loading}
+                />
+                {errors.accountNumber && (
+                  <p className="text-red-500 text-xs mt-1">{errors.accountNumber}</p>
                 )}
               </div>
 
