@@ -342,9 +342,46 @@ function Household() {
     return `https://avatar.iran.liara.run/username?username=${formattedName}`;
   };
 
-  const handleOpenCreateModal = () => {
+  const generateAccountNumber = async () => {
+    try {
+      // Fetch all users to find the highest account number
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', '==', 'resident'));
+      const querySnapshot = await getDocs(q);
+      
+      let maxNumber = 0;
+      querySnapshot.docs.forEach(doc => {
+        const userData = doc.data();
+        if (userData.accountNumber) {
+          // Extract number from account number (format: ACC-00001 or just number)
+          const match = userData.accountNumber.toString().match(/(\d+)$/);
+          if (match) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNumber) {
+              maxNumber = num;
+            }
+          }
+        }
+      });
+      
+      // Generate next account number
+      const nextNumber = maxNumber + 1;
+      return `ACC-${String(nextNumber).padStart(5, '0')}`;
+    } catch (error) {
+      console.error('Error generating account number:', error);
+      // Fallback: use timestamp-based number
+      const timestamp = Date.now();
+      return `ACC-${String(timestamp).slice(-5)}`;
+    }
+  };
+
+  const handleOpenCreateModal = async () => {
     setIsEditMode(false);
     setEditingUserId(null);
+    
+    // Auto-generate account number
+    const autoAccountNumber = await generateAccountNumber();
+    
     setFormData({
       firstName: '',
       middleName: '',
@@ -354,7 +391,7 @@ function Household() {
       gender: '',
       age: '',
       meterNumber: '',
-      accountNumber: ''
+      accountNumber: autoAccountNumber
     });
     setProfilePicFile(null);
     setProfilePicPreview(null);
@@ -714,7 +751,8 @@ function Household() {
           contactNumber: '',
           gender: '',
           age: '',
-          meterNumber: ''
+          meterNumber: '',
+          accountNumber: ''
         });
         setProfilePicFile(null);
         setProfilePicPreview(null);
@@ -811,7 +849,8 @@ function Household() {
           contactNumber: '',
           gender: '',
           age: '',
-          meterNumber: ''
+          meterNumber: '',
+          accountNumber: ''
         });
         setProfilePicFile(null);
         setProfilePicPreview(null);
@@ -984,6 +1023,10 @@ function Household() {
                       <span className="text-gray-500">Meter #:</span>
                       <span className="text-gray-900">{user.meterNumber}</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Account #:</span>
+                      <span className="text-gray-900">{user.accountNumber || 'N/A'}</span>
+                    </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-500">Reading:</span>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -1108,6 +1151,9 @@ function Household() {
                     Meter Number
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                    Account Number
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Reading Status
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
@@ -1146,6 +1192,9 @@ function Household() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.meterNumber}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.accountNumber || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
@@ -1546,10 +1595,16 @@ function Household() {
                   onChange={handleInputChange}
                   className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.accountNumber ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  } ${isEditMode ? '' : 'bg-gray-50'}`}
                   placeholder="Enter account number"
-                  disabled={loading}
+                  disabled={loading || !isEditMode}
+                  readOnly={!isEditMode}
                 />
+                {!isEditMode && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Account number is automatically generated
+                  </p>
+                )}
                 {errors.accountNumber && (
                   <p className="text-red-500 text-xs mt-1">{errors.accountNumber}</p>
                 )}
