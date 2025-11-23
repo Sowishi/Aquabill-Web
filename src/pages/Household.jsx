@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, addDoc, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
@@ -13,6 +13,7 @@ function Household() {
   const [userToArchive, setUserToArchive] = useState(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [userForQR, setUserForQR] = useState(null);
+  const qrRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -479,7 +480,52 @@ function Household() {
   };
 
   const handlePrintQR = () => {
-    window.print();
+    if (!userForQR || !qrRef.current) return;
+    
+    const qrContent = qrRef.current.innerHTML;
+    
+    const printWindow = window.open("", "", "width=800,height=800");
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print QR Code</title>
+          <style>
+            body {
+              margin: 0;
+              padding: 20px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              font-family: Arial, sans-serif;
+            }
+            .qr-container {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            .account-number {
+              margin-top: 20px;
+              font-size: 18px;
+              font-weight: bold;
+              text-align: center;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="qr-container">
+            ${qrContent}
+            <div class="account-number">${userForQR.accountNumber || 'N/A'}</div>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.print();
   };
 
   const handleViewBillsClick = (userId, event) => {
@@ -1688,6 +1734,13 @@ function Household() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Hidden QR Code for Printing */}
+      {userForQR && (
+        <div ref={qrRef} style={{ display: 'none' }}>
+          <QRCodeSVG value={userForQR.id} size={200} />
         </div>
       )}
 
