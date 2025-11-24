@@ -7,6 +7,8 @@ function Complaints() {
   const [complaints, setComplaints] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
 
   // Fetch complaints and users from Firebase
   useEffect(() => {
@@ -47,6 +49,7 @@ function Complaints() {
           userId: data.userId || '',
           complaintType: data.complaintType || 'General',
           description: data.description || '',
+          imageUrl: data.imageUrl || data.image || data.photoUrl || null,
           submittedDate: data.createdAt || new Date().toISOString(),
           resolvedDate: data.resolvedDate || null,
           notes: data.notes || ''
@@ -107,13 +110,16 @@ function Complaints() {
                     Account #
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Description
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tr-lg">
+                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                    Picture
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Submitted
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tr-lg">
+                    Actions
                   </th>
                 </tr>
               </thead>
@@ -131,13 +137,25 @@ function Complaints() {
                       <div>{complaint.accountNumber}</div>
                       <div className="text-xs text-gray-400">{complaint.meterNumber}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {complaint.complaintType}
-                    </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
                       <div className="truncate" title={complaint.description}>
                         {complaint.description}
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {complaint.imageUrl ? (
+                        <div className="flex items-center">
+                          <img 
+                            src={complaint.imageUrl} 
+                            alt="Problem picture" 
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => window.open(complaint.imageUrl, '_blank')}
+                            title="Click to view full size"
+                          />
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">No image</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {complaint.submittedDate ? new Date(complaint.submittedDate).toLocaleDateString('en-US', {
@@ -146,6 +164,18 @@ function Complaints() {
                         day: 'numeric'
                       }) : 'N/A'}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => {
+                          setSelectedComplaint(complaint);
+                          setShowModal(true);
+                        }}
+                        className="px-3 py-1.5 rounded-lg text-white text-sm font-medium transition-colors hover:opacity-90"
+                        style={{ backgroundColor: '#006fba' }}
+                      >
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -153,6 +183,175 @@ function Complaints() {
           </div>
         )}
       </div>
+
+      {/* Complaint Details Modal */}
+      {showModal && selectedComplaint && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+                  Complaint Details
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowModal(false);
+                    setSelectedComplaint(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {/* Full Screen Image */}
+              {selectedComplaint.imageUrl ? (
+                <div className="mb-6">
+                  <img 
+                    src={selectedComplaint.imageUrl} 
+                    alt="Problem picture" 
+                    className="w-full h-auto max-h-[500px] object-contain rounded-lg border border-gray-200 bg-gray-50"
+                  />
+                </div>
+              ) : (
+                <div className="mb-6 bg-gray-100 rounded-lg border border-gray-200 p-12 text-center">
+                  <MdReportProblem className="text-6xl text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No image available</p>
+                </div>
+              )}
+
+              {/* Complaint Details */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Complaint ID
+                    </label>
+                    <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                      {selectedComplaint.complaintId}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Submitted Date
+                    </label>
+                    <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                      {selectedComplaint.submittedDate ? new Date(selectedComplaint.submittedDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Customer Name
+                    </label>
+                    <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                      {selectedComplaint.customerName}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Contact Number
+                    </label>
+                    <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                      {selectedComplaint.contactNumber}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Account Number
+                    </label>
+                    <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                      {selectedComplaint.accountNumber}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Meter Number
+                    </label>
+                    <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                      {selectedComplaint.meterNumber}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                    {selectedComplaint.userEmail || 'N/A'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg min-h-[80px] whitespace-pre-wrap">
+                    {selectedComplaint.description || 'No description provided'}
+                  </p>
+                </div>
+
+                {selectedComplaint.notes && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Notes
+                    </label>
+                    <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg min-h-[60px] whitespace-pre-wrap">
+                      {selectedComplaint.notes}
+                    </p>
+                  </div>
+                )}
+
+                {selectedComplaint.resolvedDate && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Resolved Date
+                    </label>
+                    <p className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg">
+                      {new Date(selectedComplaint.resolvedDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setSelectedComplaint(null);
+                }}
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors duration-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
