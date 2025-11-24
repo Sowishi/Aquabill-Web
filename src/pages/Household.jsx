@@ -259,17 +259,15 @@ function Household() {
     return password;
   };
 
-  const sendTemporaryPasswordEmail = async (email, fullName, tempPassword) => {
+  const sendTemporaryPasswordEmail = async (email, fullName, tempPassword, accountNumber) => {
     try {
-   
-
-      
       const emailData = {
         to_email: email,
         to_name: fullName,
         temporary_password: tempPassword,
+        account_number: accountNumber,
         subject: 'Your AquaBill Account - Temporary Password',
-        message: `Hello ${fullName},\n\nYour account has been created successfully!\n\nHere are your login credentials:\nEmail: ${email}\nTemporary Password: ${tempPassword}\n\nPlease log in and change your password as soon as possible.\n\nBest regards,\nAquaBill Team`
+        message: `Hello ${fullName},\n\nYour account has been created successfully!\n\nHere are your login credentials:\nAccount Number: ${accountNumber}\nEmail: ${email}\nTemporary Password: ${tempPassword}\n\nPlease log in and change your password as soon as possible.\n\nBest regards,\nAquaBill Team`
       };
 
       const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
@@ -278,9 +276,9 @@ function Household() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          service_id: 'document_management_syst',
-          template_id: 'template_4vig146',
-          user_id: 'CC6NDqZK6hJlZZd_X',
+          service_id: 'service_ves7ah7',
+          template_id: 'template_cb4upvj',
+          user_id: 'pQ5V0cJlxP7v7MH_s',
           template_params: emailData
         })
       });
@@ -289,11 +287,7 @@ function Household() {
         throw new Error('Failed to send email');
       }
       
-
-     
       console.log('Email would be sent with:', emailData);
-      
-
       
       return true;
     } catch (error) {
@@ -874,7 +868,8 @@ function Household() {
           await sendTemporaryPasswordEmail(
             formData.email,
             fullName,
-            tempPassword
+            tempPassword,
+            formData.accountNumber
           );
           setSuccessMessage(
             `User created successfully! An email with the temporary password has been sent to ${formData.email}. `
