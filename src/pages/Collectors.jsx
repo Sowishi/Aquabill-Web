@@ -14,7 +14,9 @@ function Collectors() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all'); // all, active, inactive, suspended
   const [formData, setFormData] = useState({
-    fullName: '',
+    firstName: '',
+    middleInitial: '',
+    lastName: '',
     email: '',
     contactNumber: '',
     gender: '',
@@ -79,9 +81,11 @@ function Collectors() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    // Limit middleInitial to 1 character
+    const processedValue = name === 'middleInitial' ? value.toUpperCase().slice(0, 1) : value;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: processedValue
     }));
     // Clear error for this field when user starts typing
     if (errors[name]) {
@@ -95,11 +99,18 @@ function Collectors() {
   const validateForm = () => {
     const newErrors = {};
 
-    // Full Name validation
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
-    } else if (formData.fullName.trim().length < 2) {
-      newErrors.fullName = 'Full name must be at least 2 characters';
+    // First Name validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First name is required';
+    } else if (formData.firstName.trim().length < 2) {
+      newErrors.firstName = 'First name must be at least 2 characters';
+    }
+
+    // Last Name validation
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last name is required';
+    } else if (formData.lastName.trim().length < 2) {
+      newErrors.lastName = 'Last name must be at least 2 characters';
     }
 
     // Email validation
@@ -220,7 +231,9 @@ function Collectors() {
     setIsEditMode(false);
     setEditingCollectorId(null);
     setFormData({
-      fullName: '',
+      firstName: '',
+      middleInitial: '',
+      lastName: '',
       email: '',
       contactNumber: '',
       gender: '',
@@ -237,8 +250,31 @@ function Collectors() {
   const handleOpenEditModal = (collector) => {
     setIsEditMode(true);
     setEditingCollectorId(collector.id);
+    
+    // Split fullName into firstName, middleInitial, lastName
+    // Try to split intelligently - assume format: "FirstName M. LastName" or "FirstName LastName"
+    const nameParts = collector.fullName ? collector.fullName.trim().split(/\s+/) : [];
+    let firstName = '';
+    let middleInitial = '';
+    let lastName = '';
+    
+    if (nameParts.length === 1) {
+      firstName = nameParts[0];
+    } else if (nameParts.length === 2) {
+      firstName = nameParts[0];
+      lastName = nameParts[1];
+    } else if (nameParts.length >= 3) {
+      firstName = nameParts[0];
+      // Extract middle initial (remove period if present)
+      const middlePart = nameParts[1];
+      middleInitial = middlePart.replace('.', '').charAt(0).toUpperCase();
+      lastName = nameParts[nameParts.length - 1];
+    }
+    
     setFormData({
-      fullName: collector.fullName,
+      firstName,
+      middleInitial,
+      lastName,
       email: collector.email,
       contactNumber: collector.contactNumber,
       gender: collector.gender,
@@ -311,10 +347,18 @@ function Collectors() {
           profilePicUrl = await uploadProfilePicture(profilePicFile, editingCollectorId);
         }
 
+        // Concatenate name parts
+        const nameParts = [formData.firstName.trim()];
+        if (formData.middleInitial.trim()) {
+          nameParts.push(formData.middleInitial.trim() + '.');
+        }
+        nameParts.push(formData.lastName.trim());
+        const fullName = nameParts.filter(part => part.length > 0).join(' ');
+
         // Update collector data in Firestore
         const collectorRef = doc(db, 'users', editingCollectorId);
         const updateData = {
-          fullName: formData.fullName,
+          fullName: fullName,
           email: formData.email,
           contactNumber: formData.contactNumber,
           gender: formData.gender,
@@ -332,7 +376,9 @@ function Collectors() {
 
         // Reset form
         setFormData({
-          fullName: '',
+          firstName: '',
+          middleInitial: '',
+          lastName: '',
           email: '',
           contactNumber: '',
           gender: '',
@@ -367,9 +413,17 @@ function Collectors() {
           return;
         }
 
+        // Concatenate name parts
+        const nameParts = [formData.firstName.trim()];
+        if (formData.middleInitial.trim()) {
+          nameParts.push(formData.middleInitial.trim() + '.');
+        }
+        nameParts.push(formData.lastName.trim());
+        const fullName = nameParts.filter(part => part.length > 0).join(' ');
+
         // Create collector document first to get the ID
         const newCollectorRef = await addDoc(collection(db, 'users'), {
-          fullName: formData.fullName,
+          fullName: fullName,
           email: formData.email,
           contactNumber: formData.contactNumber,
           gender: formData.gender,
@@ -388,7 +442,7 @@ function Collectors() {
           profilePicUrl = await uploadProfilePicture(profilePicFile, newCollectorRef.id);
         } else {
           // Use default avatar from API
-          profilePicUrl = generateDefaultAvatar(formData.fullName, formData.gender);
+          profilePicUrl = generateDefaultAvatar(fullName, formData.gender);
         }
 
         // Update collector with profile picture URL
@@ -400,7 +454,7 @@ function Collectors() {
         try {
           await sendTemporaryPasswordEmail(
             formData.email,
-            formData.fullName,
+            fullName,
             tempPassword
           );
           setSuccessMessage(
@@ -415,7 +469,9 @@ function Collectors() {
 
         // Reset form
         setFormData({
-          fullName: '',
+          firstName: '',
+          middleInitial: '',
+          lastName: '',
           email: '',
           contactNumber: '',
           gender: '',
@@ -848,25 +904,66 @@ function Collectors() {
                 </div>
               </div>
 
-              {/* Full Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                    errors.fullName ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter full name"
-                  disabled={loading}
-                />
-                {errors.fullName && (
-                  <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>
-                )}
+              {/* Name Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+                {/* First Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    First Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.firstName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="First name"
+                    disabled={loading}
+                  />
+                  {errors.firstName && (
+                    <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
+                  )}
+                </div>
+
+                {/* Middle Initial */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Middle Initial
+                  </label>
+                  <input
+                    type="text"
+                    name="middleInitial"
+                    value={formData.middleInitial}
+                    onChange={handleInputChange}
+                    maxLength="1"
+                    className="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center uppercase"
+                    placeholder="M.I."
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Last Name */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Last Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.lastName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="Last name"
+                    disabled={loading}
+                  />
+                  {errors.lastName && (
+                    <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
+                  )}
+                </div>
               </div>
 
               {/* Email Address */}

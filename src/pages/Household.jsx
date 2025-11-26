@@ -182,10 +182,25 @@ function Household() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // Special handling for middle name - convert to uppercase and limit to initials only
+    if (name === 'middleName') {
+      // Remove any non-letter characters and convert to uppercase
+      const initialsOnly = value.replace(/[^A-Za-z]/g, '').toUpperCase();
+      // Limit to 3 characters (for multiple initials like "J.M.")
+      const limitedValue = initialsOnly.slice(0, 3);
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: limitedValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+    
     // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -210,6 +225,14 @@ function Household() {
       newErrors.lastName = 'Last name is required';
     } else if (formData.lastName.trim().length < 2) {
       newErrors.lastName = 'Last name must be at least 2 characters';
+    }
+
+    // Middle Name validation (initials only)
+    if (formData.middleName.trim()) {
+      const middleNamePattern = /^[A-Z]{1,3}$/;
+      if (!middleNamePattern.test(formData.middleName.trim())) {
+        newErrors.middleName = 'Middle name should be initials only (1-3 letters)';
+      }
     }
 
     // Email validation
@@ -339,7 +362,10 @@ function Household() {
 
   const generateAccountNumber = async () => {
     try {
-      // Fetch all users to find the highest account number
+      // Get current year
+      const currentYear = new Date().getFullYear();
+      
+      // Fetch all users to find the highest account number for current year
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('role', '==', 'resident'));
       const querySnapshot = await getDocs(q);
@@ -348,8 +374,58 @@ function Household() {
       querySnapshot.docs.forEach(doc => {
         const userData = doc.data();
         if (userData.accountNumber) {
-          // Extract number from account number (format: ACC-00001 or just number)
-          const match = userData.accountNumber.toString().match(/(\d+)$/);
+          const accountNumber = userData.accountNumber.toString();
+          
+          // Check if it's in the new format: AB-YYYY-XXX
+          const newFormatMatch = accountNumber.match(/^AB-(\d{4})-(\d+)$/);
+          if (newFormatMatch) {
+            const year = parseInt(newFormatMatch[1], 10);
+            const num = parseInt(newFormatMatch[2], 10);
+            // Only consider numbers from the current year
+            if (year === currentYear && num > maxNumber) {
+              maxNumber = num;
+            }
+          } else {
+            // Handle old format: ACC-00001 or legacy formats
+            // Extract any trailing number as fallback
+            const legacyMatch = accountNumber.match(/(\d+)$/);
+            if (legacyMatch) {
+              const num = parseInt(legacyMatch[1], 10);
+              // Only consider if it's a small number (likely old format)
+              // This helps transition from old to new format
+              if (num < 1000 && num > maxNumber) {
+                maxNumber = num;
+              }
+            }
+          }
+        }
+      });
+      
+      // Generate next account number in format: AB-YYYY-001
+      const nextNumber = maxNumber + 1;
+      return `AB-${currentYear}-${String(nextNumber).padStart(3, '0')}`;
+    } catch (error) {
+      console.error('Error generating account number:', error);
+      // Fallback: use current year with timestamp-based number
+      const currentYear = new Date().getFullYear();
+      const timestamp = Date.now();
+      return `AB-${currentYear}-${String(timestamp).slice(-3)}`;
+    }
+  };
+
+  const generateMeterNumber = async () => {
+    try {
+      // Fetch all users to find the highest meter number
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', '==', 'resident'));
+      const querySnapshot = await getDocs(q);
+      
+      let maxNumber = 0;
+      querySnapshot.docs.forEach(doc => {
+        const userData = doc.data();
+        if (userData.meterNumber) {
+          // Extract number from meter number (format: M-001 or just number)
+          const match = userData.meterNumber.toString().match(/(\d+)$/);
           if (match) {
             const num = parseInt(match[1], 10);
             if (num > maxNumber) {
@@ -359,14 +435,14 @@ function Household() {
         }
       });
       
-      // Generate next account number
+      // Generate next meter number
       const nextNumber = maxNumber + 1;
-      return `ACC-${String(nextNumber).padStart(5, '0')}`;
+      return `M-${String(nextNumber).padStart(3, '0')}`;
     } catch (error) {
-      console.error('Error generating account number:', error);
+      console.error('Error generating meter number:', error);
       // Fallback: use timestamp-based number
       const timestamp = Date.now();
-      return `ACC-${String(timestamp).slice(-5)}`;
+      return `M-${String(timestamp).slice(-3)}`;
     }
   };
 
@@ -374,8 +450,9 @@ function Household() {
     setIsEditMode(false);
     setEditingUserId(null);
     
-    // Auto-generate account number
+    // Auto-generate account number and meter number
     const autoAccountNumber = await generateAccountNumber();
+    const autoMeterNumber = await generateMeterNumber();
     
     setFormData({
       firstName: '',
@@ -385,7 +462,7 @@ function Household() {
       contactNumber: '',
       gender: '',
       age: '',
-      meterNumber: '',
+      meterNumber: autoMeterNumber,
       accountNumber: autoAccountNumber
     });
     setProfilePicFile(null);
@@ -1476,17 +1553,29 @@ function Household() {
                 {/* Middle Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Middle Name
+                    Middle Name (Initials Only)
                   </label>
                   <input
                     type="text"
                     name="middleName"
                     value={formData.middleName}
                     onChange={handleInputChange}
-                    className="w-full px-3 md:px-4 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Middle name"
+                    maxLength={3}
+                    className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                      errors.middleName ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="e.g., J or JM"
                     disabled={loading}
+                    style={{ textTransform: 'uppercase' }}
                   />
+                  {errors.middleName && (
+                    <p className="text-red-500 text-xs mt-1">{errors.middleName}</p>
+                  )}
+                  {!errors.middleName && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Enter initials only (1-3 letters)
+                    </p>
+                  )}
                 </div>
 
                 {/* Last Name */}
@@ -1615,10 +1704,16 @@ function Household() {
                   onChange={handleInputChange}
                   className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.meterNumber ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  } ${isEditMode ? '' : 'bg-gray-50'}`}
                   placeholder="Enter meter number"
-                  disabled={loading}
+                  disabled={loading || !isEditMode}
+                  readOnly={!isEditMode}
                 />
+                {!isEditMode && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Meter number is automatically generated
+                  </p>
+                )}
                 {errors.meterNumber && (
                   <p className="text-red-500 text-xs mt-1">{errors.meterNumber}</p>
                 )}
