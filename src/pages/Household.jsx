@@ -1193,7 +1193,7 @@ function Household() {
                             <MdReceipt className="h-5 w-5 text-white" />
                           </button>
                           {viewBillsDropdown === user.id && (
-                            <div className="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 view-bills-dropdown">
+                            <div className="absolute bottom-full left-0 mb-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 view-bills-dropdown">
                               <button
                                 onClick={() => handlePaymentHistory(user)}
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -1252,9 +1252,9 @@ function Household() {
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden lg:block overflow-x-auto">
+            <div className="hidden lg:block overflow-x-auto overflow-y-auto max-h-[600px] pb-6">
               <table className="min-w-full divide-y divide-gray-200 overflow-hidden rounded-lg">
-              <thead style={{ backgroundColor: '#006fba' }} className="rounded-t-lg">
+              <thead style={{ backgroundColor: '#006fba' }} className="rounded-t-lg sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tl-lg">
                     Full Name
@@ -1282,7 +1282,7 @@ function Household() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-200 ">
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className={`hover:bg-gray-50 ${user.isArchived ? 'bg-gray-50' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1359,7 +1359,7 @@ function Household() {
                                 <MdReceipt className="h-5 w-5 text-white" />
                               </button>
                               {viewBillsDropdown === user.id && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 view-bills-dropdown">
+                                <div className="absolute right-0 mt-2 bottom-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 view-bills-dropdown">
                                   <button
                                     onClick={() => handlePaymentHistory(user)}
                                     className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
@@ -2219,8 +2219,8 @@ function Household() {
                       {getFilteredConsumedHistory().map((billing) => {
                         const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
                         const consumption = billing.consumption || billing.waterConsumption || billing.consumed || '0';
-                        const previousReading = billing.previousReading || billing.prevReading || billing.lastReading || 'N/A';
-                        const currentReading = billing.currentReading || billing.currReading || billing.newReading || 'N/A';
+                        const previousReading = billing.previousConsumption || billing.prevReading || billing.lastReading || 'N/A';
+                        const currentReading = billing.consumption || billing.currReading || billing.newReading || 'N/A';
                         const period = billing.period || billing.billingPeriod || billing.month || 'N/A';
                         const unit = billing.unit || 'cu.m';
 
