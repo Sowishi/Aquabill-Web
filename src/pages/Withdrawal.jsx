@@ -3,7 +3,7 @@ import { collection, getDocs, addDoc, query, orderBy } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
 import { useAuth } from '../context/AuthContext';
-import { MdAccountBalanceWallet, MdUpload, MdImage, MdSave } from 'react-icons/md';
+import { MdRemoveCircle, MdUpload, MdImage, MdSave } from 'react-icons/md';
 
 function Withdrawal() {
   const { user } = useAuth();

@@ -36,7 +36,7 @@ function Complaints() {
         const user = usersData.find(u => u.id === data.userId);
         
         // Generate complaint ID from document ID
-        const complaintId = `COMP-${String(doc.id).substring(0, 8).toUpperCase()}`;
+        const complaintId = `DAM-${String(doc.id).substring(0, 8).toUpperCase()}`;
         
         return {
           id: doc.id,
@@ -116,7 +116,7 @@ function Complaints() {
                     Picture
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    Submitted
+                    Date of Report
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tr-lg">
                     Actions

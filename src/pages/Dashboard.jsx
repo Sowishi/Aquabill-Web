@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import aquabillLogo from '../assets/aquabill-logo.png'
-import { MdDashboard, MdHome, MdPeople, MdAnnouncement, MdAssessment, MdNotifications, MdChevronLeft, MdChevronRight, MdMenu, MdLogout, MdEmail, MdSettings, MdAccountBalance, MdAccountBalanceWallet, MdPayment, MdReportProblem } from 'react-icons/md'
+import { MdDashboard, MdHome, MdPeople, MdAnnouncement, MdAssessment, MdNotifications, MdChevronLeft, MdChevronRight, MdMenu, MdLogout, MdEmail, MdSettings, MdAccountBalance, MdRemoveCircle, MdPayment, MdReportProblem } from 'react-icons/md'
 import { FaUser } from 'react-icons/fa'
 
 function Dashboard() {
@@ -53,7 +53,7 @@ function Dashboard() {
       return [
         { name: 'Dashboard', path: '/dashboard', icon: MdDashboard },
         { name: 'Deposit', path: '/dashboard/deposit', icon: MdAccountBalance },
-        { name: 'Withdrawal', path: '/dashboard/withdrawal', icon: MdAccountBalanceWallet },
+        { name: 'Withdrawal', path: '/dashboard/withdrawal', icon: MdRemoveCircle },
         { name: 'Remittance', path: '/dashboard/remittance', icon: MdPayment },
         { name: 'Settings', path: '/dashboard/settings', icon: MdSettings }
       ]

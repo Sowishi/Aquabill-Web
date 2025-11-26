@@ -33,7 +33,7 @@ setGlobalOptions({ maxInstances: 10 });
 // You can configure the schedule in Firebase Console or update the schedule property
 export const sendScheduledSMS = onSchedule(
   {
-    schedule: "*/5 * * * *",
+    schedule: "0 0 * * *",
     timeZone: "Asia/Manila", // Adjust to your timezone
   },
   async () => {
