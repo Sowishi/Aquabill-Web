@@ -14,6 +14,7 @@ import Notifications from './pages/Notifications'
 import BillReminders from './pages/BillReminders'
 import RateSettings from './pages/RateSettings'
 import Deposit from './pages/Deposit'
+import Withdrawal from './pages/Withdrawal'
 import Remittance from './pages/Remittance'
 import Settings from './pages/Settings'
 import Complaints from './pages/Complaints'
@@ -46,6 +47,7 @@ function App() {
         >
           <Route index element={<DashboardHomeWrapper />} />
           <Route path="deposit" element={<Deposit />} />
+          <Route path="withdrawal" element={<Withdrawal />} />
           <Route path="remittance" element={<Remittance />} />
           <Route path="household" element={<Household />} />
           <Route path="bill-reminders" element={<BillReminders />} />
