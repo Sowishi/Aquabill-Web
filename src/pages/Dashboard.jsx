@@ -68,7 +68,7 @@ function Dashboard() {
       { name: 'Rate Settings', path: '/dashboard/rate-settings', icon: MdSettings },
       { name: 'Reports', path: '/dashboard/reports', icon: MdAssessment },
       { name: 'Notifications', path: '/dashboard/notifications', icon: MdNotifications },
-      { name: 'Complaints', path: '/dashboard/complaints', icon: MdReportProblem },
+      { name: 'Damage Reports', path: '/dashboard/complaints', icon: MdReportProblem },
       { name: 'Settings', path: '/dashboard/settings', icon: MdSettings }
     ]
   }
