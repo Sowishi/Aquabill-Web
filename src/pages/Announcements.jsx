@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { MdAnnouncement, MdSearch } from 'react-icons/md';
 
@@ -195,7 +195,18 @@ function Announcements() {
           createdAt: new Date().toISOString()
         });
 
-        setSuccessMessage('Announcement created successfully!');
+        // Send SMS to all users with phone numbers
+        try {
+          const smsResult = await sendAnnouncementSMS(formData.title.trim(), formData.body.trim());
+          if (smsResult.sent > 0) {
+            setSuccessMessage(`Announcement created successfully! SMS sent to ${smsResult.sent} user(s).${smsResult.failed > 0 ? ` Failed to send to ${smsResult.failed} user(s).` : ''}`);
+          } else {
+            setSuccessMessage('Announcement created successfully! (No SMS sent - no users with phone numbers found)');
+          }
+        } catch (smsError) {
+          console.error('Error sending SMS:', smsError);
+          setSuccessMessage('Announcement created successfully! (SMS sending failed)');
+        }
 
         // Reset form
         setFormData({
@@ -206,11 +217,11 @@ function Announcements() {
         // Refresh announcements list
         fetchAnnouncements();
 
-        // Close modal after 2 seconds
+        // Close modal after 3 seconds (increased to show SMS status)
         setTimeout(() => {
           setShowModal(false);
           setSuccessMessage('');
-        }, 2000);
+        }, 3000);
       }
 
     } catch (error) {
@@ -237,6 +248,110 @@ function Announcements() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Function to format phone number
+  const formatPhoneNumber = (phoneNumber) => {
+    if (!phoneNumber) return null;
+    let formatted = phoneNumber.trim();
+    if (!formatted.startsWith('+')) {
+      // If it doesn't start with +, assume it's a local number
+      // Remove leading 0 if present and add country code
+      if (formatted.startsWith('0')) {
+        formatted = '+63' + formatted.substring(1);
+      } else if (formatted.length === 10) {
+        formatted = '+63' + formatted;
+      } else {
+        formatted = '+63' + formatted;
+      }
+    }
+    return formatted;
+  };
+
+  // Function to send SMS
+  const sendSMS = async (phoneNumber, message) => {
+    try {
+      const smsApiUrl = 'https://sms.iprogtech.com/api/v1/sms_messages';
+      const formattedPhone = formatPhoneNumber(phoneNumber);
+      
+      if (!formattedPhone) {
+        throw new Error('Invalid phone number');
+      }
+
+      const requestBody = {
+        api_token: '22db33496bbfdb9e6557cf841d80f9ef0c809ccd',
+        phone_number: formattedPhone,
+        message: message,
+      };
+
+      const response = await fetch(smsApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`SMS API error: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error sending SMS:', error);
+      throw error;
+    }
+  };
+
+  // Function to send announcement via SMS to all users
+  const sendAnnouncementSMS = async (title, body) => {
+    try {
+      // Fetch all users with contact numbers
+      const usersRef = collection(db, 'users');
+      const usersSnapshot = await getDocs(usersRef);
+      
+      const usersWithPhone = [];
+      usersSnapshot.forEach((doc) => {
+        const userData = doc.data();
+        if (userData.contactNumber && userData.contactNumber.trim() !== '') {
+          usersWithPhone.push({
+            id: doc.id,
+            fullName: userData.fullName || 'User',
+            contactNumber: userData.contactNumber,
+          });
+        }
+      });
+
+      console.log(usersWithPhone);
+
+      if (usersWithPhone.length === 0) {
+        console.log('No users with phone numbers found');
+        return { sent: 0, failed: 0 };
+      }
+
+      // Create SMS message
+      const smsMessage = `AquaBill Announcement: ${title}\n\n${body}\n\n- AquaBill Team`;
+
+      // Send SMS to all users
+      let sentCount = 0;
+      let failedCount = 0;
+
+      for (const user of usersWithPhone) {
+        try {
+          await sendSMS(user.contactNumber, smsMessage);
+          sentCount++;
+        } catch (error) {
+          console.error(`Failed to send SMS to ${user.fullName} (${user.contactNumber}):`, error);
+          failedCount++;
+        }
+      }
+
+      return { sent: sentCount, failed: failedCount };
+    } catch (error) {
+      console.error('Error sending announcement SMS:', error);
+      throw error;
+    }
   };
 
   return (
