@@ -3,6 +3,7 @@ import './App.css'
 import { AuthProvider } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Login from './pages/Login'
+import ForgotPassword from './pages/ForgotPassword'
 import Dashboard from './pages/Dashboard'
 import DashboardHome from './pages/DashboardHome'
 import TreasurerDashboardHome from './pages/TreasurerDashboardHome'
@@ -37,6 +38,7 @@ function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route 
           path="/dashboard" 
           element={

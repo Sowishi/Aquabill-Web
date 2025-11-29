@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import aquabillLogo from '../assets/aquabill-logo.png'
 import bgImage from '../assets/bg.jpg'
@@ -123,6 +123,15 @@ function Login() {
             >
               {loading ? 'Signing In...' : 'Sign In'}
             </button>
+
+            <div className="text-center">
+              <Link 
+                to="/forgot-password" 
+                className="text-white/80 hover:text-white text-sm underline"
+              >
+                Forgot Password?
+              </Link>
+            </div>
           </form>
         </div>
       </div>
