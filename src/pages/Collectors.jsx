@@ -168,9 +168,9 @@ function Collectors() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          service_id: 'document_management_syst',
-          template_id: 'template_4vig146',
-          user_id: 'CC6NDqZK6hJlZZd_X',
+          service_id: 'service_ves7ah7',
+          template_id: 'template_cb4upvj',
+          user_id: 'pQ5V0cJlxP7v7MH_s',
           template_params: emailData
         })
       });

@@ -79,7 +79,7 @@ function Complaints() {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
           <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
             <MdReportProblem className="text-2xl" style={{ color: '#006fba' }} />
-            Customer Complaints
+            Damage Reports
           </h2>
           <p className="text-xs md:text-sm text-gray-500">
             Total: {complaints.length} complaints
@@ -100,8 +100,11 @@ function Complaints() {
             <table className="min-w-full divide-y divide-gray-200 overflow-hidden rounded-lg">
               <thead style={{ backgroundColor: '#006fba' }} className="rounded-t-lg">
                 <tr>
+                <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                    Date of Report
+                  </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tl-lg">
-                    Complaint ID
+                    Damage ID
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Customer
@@ -115,9 +118,7 @@ function Complaints() {
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Picture
                   </th>
-                  <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    Date of Report
-                  </th>
+                
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tr-lg">
                     Actions
                   </th>
@@ -126,6 +127,13 @@ function Complaints() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {complaints.map((complaint) => (
                   <tr key={complaint.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {complaint.submittedDate ? new Date(complaint.submittedDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      }) : 'N/A'}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {complaint.complaintId}
                     </td>
@@ -157,13 +165,7 @@ function Complaints() {
                         <span className="text-sm text-gray-400">No image</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {complaint.submittedDate ? new Date(complaint.submittedDate).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric'
-                      }) : 'N/A'}
-                    </td>
+            
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => {
