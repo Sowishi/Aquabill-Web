@@ -39,7 +39,7 @@ export const sendScheduledSMS = onSchedule(
   async () => {
     try {
       const smsApiUrl = "https://sms.iprogtech.com/api/v1/sms_messages";
-      const apiToken = "22db33496bbfdb9e6557cf841d80f9ef0c809ccd";
+      const apiToken = "9d955a7153ec9346cf3027ba86ca3038277a6094";
 
       // Calculate date range: today to 3 days from now (inclusive)
       const now = new Date();

@@ -279,7 +279,7 @@ function Announcements() {
       }
 
       const requestBody = {
-        api_token: '22db33496bbfdb9e6557cf841d80f9ef0c809ccd',
+        api_token: '9d955a7153ec9346cf3027ba86ca3038277a6094',
         phone_number: formattedPhone,
         message: message,
       };
