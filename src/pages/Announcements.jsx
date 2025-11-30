@@ -20,6 +20,8 @@ function Announcements() {
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
 
   // Fetch announcements from Firestore
   useEffect(() => {
@@ -132,16 +134,14 @@ function Announcements() {
     try {
       await deleteDoc(doc(db, 'announcements', announcementToDelete.id));
       setSuccessMessage(`Announcement "${announcementToDelete.title}" has been deleted successfully.`);
+      setShowSuccessModal(true);
       setShowDeleteModal(false);
       setAnnouncementToDelete(null);
       fetchAnnouncements();
-      
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
     } catch (error) {
       console.error('Error deleting announcement:', error);
       setErrorMessage('Failed to delete announcement. ' + error.message);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -169,6 +169,7 @@ function Announcements() {
         });
 
         setSuccessMessage('Announcement updated successfully!');
+        setShowSuccessModal(true);
 
         // Reset form
         setFormData({
@@ -179,13 +180,10 @@ function Announcements() {
         // Refresh announcements list
         fetchAnnouncements();
 
-        // Close modal after 2 seconds
-        setTimeout(() => {
-          setShowModal(false);
-          setSuccessMessage('');
-          setIsEditMode(false);
-          setEditingAnnouncementId(null);
-        }, 2000);
+        // Close modal after showing success
+        setShowModal(false);
+        setIsEditMode(false);
+        setEditingAnnouncementId(null);
 
       } else {
         // CREATE new announcement
@@ -203,9 +201,11 @@ function Announcements() {
           } else {
             setSuccessMessage('Announcement created successfully! (No SMS sent - no users with phone numbers found)');
           }
+          setShowSuccessModal(true);
         } catch (smsError) {
           console.error('Error sending SMS:', smsError);
           setSuccessMessage('Announcement created successfully! (SMS sending failed)');
+          setShowSuccessModal(true);
         }
 
         // Reset form
@@ -217,11 +217,8 @@ function Announcements() {
         // Refresh announcements list
         fetchAnnouncements();
 
-        // Close modal after 3 seconds (increased to show SMS status)
-        setTimeout(() => {
-          setShowModal(false);
-          setSuccessMessage('');
-        }, 3000);
+        // Close modal after showing success
+        setShowModal(false);
       }
 
     } catch (error) {
@@ -233,6 +230,7 @@ function Announcements() {
       }
       
       setErrorMessage(errorMsg);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -658,6 +656,58 @@ function Announcements() {
                   {loading ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Success!</h2>
+              <p className="text-gray-600 mb-6">{successMessage}</p>
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setSuccessMessage('');
+                }}
+                className="w-full bg-[#006fba] text-white hover:bg-[#005a9a] font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+              <p className="text-gray-600 mb-6">{errorMessage}</p>
+              <button
+                onClick={() => {
+                  setShowErrorModal(false);
+                  setErrorMessage('');
+                }}
+                className="w-full bg-red-600 text-white hover:bg-red-700 font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+              >
+                OK
+              </button>
             </div>
           </div>
         </div>

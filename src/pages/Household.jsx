@@ -35,6 +35,8 @@ function Household() {
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [viewBillsDropdown, setViewBillsDropdown] = useState(null); // Track which user's dropdown is open
   const [showPaymentHistoryModal, setShowPaymentHistoryModal] = useState(false);
   const [selectedUserForPaymentHistory, setSelectedUserForPaymentHistory] = useState(null);
@@ -547,16 +549,14 @@ function Household() {
         archivedAt: new Date().toISOString()
       });
       setSuccessMessage(`User "${userToArchive.fullName}" has been archived successfully.`);
+      setShowSuccessModal(true);
       setShowArchiveModal(false);
       setUserToArchive(null);
       fetchUsers();
-      
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
     } catch (error) {
       console.error('Error archiving user:', error);
       setErrorMessage('Failed to archive user. ' + error.message);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -778,14 +778,12 @@ function Household() {
         restoredAt: new Date().toISOString()
       });
       setSuccessMessage(`User "${user.fullName}" has been restored successfully.`);
+      setShowSuccessModal(true);
       fetchUsers();
-      
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
     } catch (error) {
       console.error('Error restoring user:', error);
       setErrorMessage('Failed to restore user. ' + error.message);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -801,14 +799,12 @@ function Household() {
         paymentStatusUpdatedAt: new Date().toISOString()
       });
       setSuccessMessage(`Payment status updated to "${newStatus}" for ${user.fullName}.`);
+      setShowSuccessModal(true);
       fetchUsers();
-      
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
     } catch (error) {
       console.error('Error updating payment status:', error);
       setErrorMessage('Failed to update payment status. ' + error.message);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -837,6 +833,7 @@ function Household() {
           const existingUser = querySnapshot.docs[0];
           if (existingUser.id !== editingUserId) {
             setErrorMessage('This email is already registered to another user.');
+            setShowErrorModal(true);
             setLoading(false);
             return;
           }
@@ -875,6 +872,7 @@ function Household() {
         await updateDoc(userRef, updateData);
 
         setSuccessMessage('User updated successfully!');
+        setShowSuccessModal(true);
 
         // Reset form
         setFormData({
@@ -894,13 +892,10 @@ function Household() {
         // Refresh users list
         fetchUsers();
 
-        // Close modal after 3 seconds
-        setTimeout(() => {
-          setShowModal(false);
-          setSuccessMessage('');
-          setIsEditMode(false);
-          setEditingUserId(null);
-        }, 3000);
+        // Close modal after showing success
+        setShowModal(false);
+        setIsEditMode(false);
+        setEditingUserId(null);
 
       } else {
         // CREATE new user
@@ -913,6 +908,7 @@ function Household() {
         
         if (!querySnapshot.empty) {
           setErrorMessage('This email is already registered.');
+          setShowErrorModal(true);
           setLoading(false);
           return;
         }
@@ -968,11 +964,13 @@ function Household() {
           setSuccessMessage(
             `User created successfully! An email with the temporary password has been sent to ${formData.email}. `
           );
+          setShowSuccessModal(true);
         } catch (emailError) {
           // User created but email failed
           setSuccessMessage(
             `User created successfully! However, email sending failed.`
           );
+          setShowSuccessModal(true);
         }
 
         // Reset form
@@ -994,7 +992,6 @@ function Household() {
         fetchUsers();
 
         setShowModal(false);
-        setSuccessMessage('');
       }
 
     } catch (error) {
@@ -1006,6 +1003,7 @@ function Household() {
       }
       
       setErrorMessage(errorMsg);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -2285,6 +2283,58 @@ function Household() {
                 className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors duration-200"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Success!</h2>
+              <p className="text-gray-600 mb-6">{successMessage}</p>
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setSuccessMessage('');
+                }}
+                className="w-full bg-[#006fba] text-white hover:bg-[#005a9a] font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+              <p className="text-gray-600 mb-6">{errorMessage}</p>
+              <button
+                onClick={() => {
+                  setShowErrorModal(false);
+                  setErrorMessage('');
+                }}
+                className="w-full bg-red-600 text-white hover:bg-red-700 font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+              >
+                OK
               </button>
             </div>
           </div>

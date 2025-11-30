@@ -20,6 +20,8 @@ function Deposit() {
   const [fetchLoading, setFetchLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [errors, setErrors] = useState({});
   const [viewingImage, setViewingImage] = useState(null);
 
@@ -179,6 +181,7 @@ function Deposit() {
       });
 
       setSuccessMessage('Deposit record added successfully!');
+      setShowSuccessModal(true);
       
       // Reset form
       setFormData({
@@ -194,14 +197,10 @@ function Deposit() {
       // Refresh deposits list
       fetchDeposits();
 
-      // Clear success message after 3 seconds
-      setTimeout(() => {
-        setSuccessMessage('');
-      }, 3000);
-
     } catch (error) {
       console.error('Error adding deposit:', error);
       setErrorMessage('Failed to add deposit record. ' + error.message);
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -493,6 +492,57 @@ function Deposit() {
                 style={{ backgroundColor: '#006fba' }}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Success!</h2>
+              <p className="text-gray-600 mb-6">{successMessage}</p>
+              <button
+                onClick={() => {
+                  setShowSuccessModal(false);
+                  setSuccessMessage('');
+                }}
+                className="w-full bg-[#006fba] text-white hover:bg-[#005a9a] font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+              <p className="text-gray-600 mb-6">{errorMessage}</p>
+              <button
+                onClick={() => {
+                  setShowErrorModal(false);
+                  setErrorMessage('');
+                }}
+                className="w-full bg-red-600 text-white hover:bg-red-700 font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+              >
+                OK
               </button>
             </div>
           </div>
