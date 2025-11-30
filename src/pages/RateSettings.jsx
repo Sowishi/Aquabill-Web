@@ -9,6 +9,8 @@ function RateSettings() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
   const [settingsDocId, setSettingsDocId] = useState(null);
   const [rateHistory, setRateHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
