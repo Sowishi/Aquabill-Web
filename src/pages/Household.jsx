@@ -276,10 +276,27 @@ function Household() {
   };
 
   const generateTemporaryPassword = () => {
-    // Generate a 6-digit numeric password (easy to remember and type)
-    // Format: XXXXXX (e.g., 123456)
-    const password = Math.floor(100000 + Math.random() * 900000).toString();
-    return password;
+    // Generate a password with special characters (not just numbers)
+    // Must contain at least one special character
+    const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+    const numbers = '0123456789';
+    const letters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    
+    // Ensure at least one special character, one number, and one letter
+    let password = '';
+    password += specialChars[Math.floor(Math.random() * specialChars.length)]; // At least one special char
+    password += numbers[Math.floor(Math.random() * numbers.length)]; // At least one number
+    password += letters[Math.floor(Math.random() * letters.length)]; // At least one letter
+    
+    // Fill the rest randomly (total length: 8-10 characters)
+    const allChars = specialChars + numbers + letters;
+    const remainingLength = 5 + Math.floor(Math.random() * 3); // 5-7 more chars
+    for (let i = 0; i < remainingLength; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
   };
 
   const sendTemporaryPasswordEmail = async (email, fullName, tempPassword, accountNumber) => {
