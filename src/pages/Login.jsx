@@ -135,6 +135,11 @@ function Login() {
           </form>
         </div>
       </div>
+      
+      {/* Copyright */}
+      <div className="absolute bottom-4 left-0 right-0 text-center text-white/80 text-sm z-10">
+        © 2025 aquabill
+      </div>
     </div>
   )
 }

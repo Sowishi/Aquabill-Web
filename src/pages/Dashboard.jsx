@@ -9,10 +9,20 @@ function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [showGreetingModal, setShowGreetingModal] = useState(false)
   const { user, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const dropdownRef = useRef(null)
+
+  // Show greeting modal on first dashboard visit
+  useEffect(() => {
+    const greetingShown = localStorage.getItem('greetingModalShown')
+    if (!greetingShown && user) {
+      setShowGreetingModal(true)
+      localStorage.setItem('greetingModalShown', 'true')
+    }
+  }, [user])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -37,12 +47,18 @@ function Dashboard() {
   }
 
   const handleLogoutConfirm = () => {
+    // Clear greeting modal flag so it shows again on next login
+    localStorage.removeItem('greetingModalShown')
     logout()
     navigate('/login')
   }
 
   const handleLogoutCancel = () => {
     setShowLogoutModal(false)
+  }
+
+  const handleCloseGreetingModal = () => {
+    setShowGreetingModal(false)
   }
 
   // Get navigation items based on user role
@@ -207,6 +223,28 @@ function Dashboard() {
             )}
           </div>
         </header>
+
+        {/* Greeting Modal */}
+        {showGreetingModal && (
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-[linear-gradient(rgba(0,0,0,0.8),rgba(0,0,0,0.5))]">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-8">
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-gray-800 mb-4">
+                  {user?.role === 'admin' ? 'Hello President' : 'Hello Treasurer'}
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  Welcome to AquaBill Management System
+                </p>
+                <button
+                  onClick={handleCloseGreetingModal}
+                  className="w-full bg-[#006fba] text-white hover:bg-[#005a9a] font-semibold py-3 rounded-lg transition duration-200 shadow-md hover:shadow-lg"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Logout Confirmation Modal */}
         {showLogoutModal && (
