@@ -190,9 +190,9 @@ function Notifications() {
                             Mark as read
                           </button>
                         )}
-                        {notification.type === 'deposit' && notification.depositSlipUrl && (
+                        {(notification.depositSlipUrl || notification.withdrawalSlipUrl) && (
                           <button
-                            onClick={() => setViewingReceipt(notification.depositSlipUrl)}
+                            onClick={() => setViewingReceipt(notification.depositSlipUrl || notification.withdrawalSlipUrl)}
                             className="flex items-center gap-1 text-xs text-white px-3 py-1 rounded hover:opacity-90 transition"
                             style={{ backgroundColor: '#006fba' }}
                           >
@@ -221,7 +221,7 @@ function Notifications() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-gray-800">Deposit Receipt</h3>
+              <h3 className="text-xl font-bold text-gray-800">Receipt</h3>
               <button
                 onClick={() => setViewingReceipt(null)}
                 className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
@@ -232,7 +232,7 @@ function Notifications() {
             <div className="p-6">
               <img
                 src={viewingReceipt}
-                alt="Deposit receipt"
+                alt="Receipt"
                 className="w-full h-auto rounded-lg border border-gray-200"
               />
             </div>
