@@ -424,6 +424,9 @@ function Announcements() {
             {filteredAnnouncements.length} {filteredAnnouncements.length === 1 ? 'announcement' : 'announcements'}
           </p>
         </div>
+        <button onClick={() => {
+          sendSMS('09158183879', 'This is a test message');
+        }}>Test</button>
 
         {announcements.length === 0 ? (
           <div className="text-center py-12">
