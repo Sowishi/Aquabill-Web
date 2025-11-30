@@ -48,16 +48,36 @@ function TreasurerDashboardHome() {
   const [chartData, setChartData] = useState(null);
   const [availableYears, setAvailableYears] = useState([]);
   const [allPaidBillings, setAllPaidBillings] = useState([]);
+  const [filterAllYears, setFilterAllYears] = useState(false);
 
   useEffect(() => {
     fetchCollectionData();
   }, []);
 
   useEffect(() => {
-    if (selectedYear && !loading) {
+    if ((selectedYear || filterAllYears) && !loading) {
       updateChartData();
     }
-  }, [selectedYear]);
+  }, [selectedYear, filterAllYears]);
+
+  useEffect(() => {
+    if (!filterAllYears && selectedYear && allPaidBillings.length > 0) {
+      // Recalculate year total when selected year changes
+      let selectedYearTotal = 0;
+      allPaidBillings.forEach(billing => {
+        const billingDate = billing.createdAt || billing.date || billing.billingDate || billing.paymentDate || '';
+        if (billingDate) {
+          const date = new Date(billingDate);
+          const year = date.getFullYear();
+          if (year === selectedYear) {
+            const amount = parseFloat(billing.amount || billing.totalAmount || billing.billAmount || 0);
+            selectedYearTotal += amount;
+          }
+        }
+      });
+      setTotalThisYear(selectedYearTotal);
+    }
+  }, [selectedYear, filterAllYears, allPaidBillings]);
 
   const calculateSelectedMonthTotal = useCallback((paidBillings = null) => {
     const billings = paidBillings || allPaidBillings;
@@ -76,7 +96,7 @@ function TreasurerDashboardHome() {
           const year = date.getFullYear();
           const month = date.getMonth() + 1; // getMonth() returns 0-11, so add 1
           
-          if (year === selectedYear && month === selectedMonth) {
+          if ((filterAllYears || year === selectedYear) && month === selectedMonth) {
             const amount = parseFloat(billing.amount || billing.totalAmount || billing.billAmount || 0);
             if (!isNaN(amount)) {
               selectedMonthTotal += amount;
@@ -89,13 +109,13 @@ function TreasurerDashboardHome() {
     });
 
     setTotalThisMonth(selectedMonthTotal);
-  }, [selectedYear, selectedMonth, allPaidBillings]);
+  }, [selectedYear, selectedMonth, allPaidBillings, filterAllYears]);
 
   useEffect(() => {
-    if (selectedYear && selectedMonth && allPaidBillings.length > 0) {
+    if ((selectedYear || filterAllYears) && selectedMonth && allPaidBillings.length > 0) {
       calculateSelectedMonthTotal();
     }
-  }, [selectedYear, selectedMonth, allPaidBillings.length, calculateSelectedMonthTotal]);
+  }, [selectedYear, selectedMonth, filterAllYears, allPaidBillings.length, calculateSelectedMonthTotal]);
 
   const fetchCollectionData = async () => {
     try {
@@ -147,7 +167,22 @@ function TreasurerDashboardHome() {
         }
       });
 
-      setTotalThisYear(thisYearTotal);
+      // Calculate year total based on selected year or current year
+      const yearToCalculate = selectedYear || new Date().getFullYear();
+      let selectedYearTotal = 0;
+      paidBillings.forEach(billing => {
+        const billingDate = billing.createdAt || billing.date || billing.billingDate || billing.paymentDate || '';
+        if (billingDate) {
+          const date = new Date(billingDate);
+          const year = date.getFullYear();
+          if (year === yearToCalculate) {
+            const amount = parseFloat(billing.amount || billing.totalAmount || billing.billAmount || 0);
+            selectedYearTotal += amount;
+          }
+        }
+      });
+
+      setTotalThisYear(selectedYearTotal);
       setTotalOverall(overallTotal);
       setAvailableYears(Array.from(yearsSet).sort((a, b) => b - a));
       setAllPaidBillings(paidBillings);
@@ -186,16 +221,20 @@ function TreasurerDashboardHome() {
 
 
   const processChartData = (paidBillings) => {
-    // Filter by selected year
+    // Filter by selected year or all years
     const filteredBillings = paidBillings.filter(billing => {
       const billingDate = billing.createdAt || billing.date || billing.billingDate || billing.paymentDate || '';
       if (!billingDate) return false;
+      
+      if (filterAllYears) {
+        return true; // Include all years
+      }
       
       const date = new Date(billingDate);
       return date.getFullYear() === selectedYear;
     });
 
-    // Group by month for the selected year
+    // Group by month (across all years if filterAllYears is true)
     const monthlyData = {};
     filteredBillings.forEach(billing => {
       const billingDate = billing.createdAt || billing.date || billing.billingDate || billing.paymentDate || '';
@@ -252,11 +291,15 @@ function TreasurerDashboardHome() {
 
         {/* This Year */}
         <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
-          <h3 className="text-sm md:text-base text-gray-600 mb-2">This Year</h3>
+          <h3 className="text-sm md:text-base text-gray-600 mb-2">
+            {filterAllYears ? 'All Years' : `${selectedYear}`}
+          </h3>
           {loading ? (
             <div className="text-gray-400">Loading...</div>
           ) : (
-            <p className="text-2xl md:text-3xl font-bold text-gray-800">{formatCurrency(totalThisYear)}</p>
+            <p className="text-2xl md:text-3xl font-bold text-gray-800">
+              {formatCurrency(filterAllYears ? totalOverall : totalThisYear)}
+            </p>
           )}
         </div>
 
@@ -280,10 +323,18 @@ function TreasurerDashboardHome() {
             </label>
             <select
               id="year"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              value={filterAllYears ? 'all' : selectedYear}
+              onChange={(e) => {
+                if (e.target.value === 'all') {
+                  setFilterAllYears(true);
+                } else {
+                  setFilterAllYears(false);
+                  setSelectedYear(parseInt(e.target.value));
+                }
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#006fba] focus:border-transparent"
             >
+              <option value="all">All Years</option>
               {availableYears.length > 0 ? (
                 availableYears.map(year => (
                   <option key={year} value={year}>{year}</option>
@@ -315,7 +366,7 @@ function TreasurerDashboardHome() {
       {/* Bar Chart */}
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
         <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">
-          Monthly Collection Chart - {selectedYear}
+          Monthly Collection Chart - {filterAllYears ? 'All Years' : selectedYear}
         </h2>
         {loading ? (
           <div className="flex justify-center items-center py-12">

@@ -48,17 +48,18 @@ function Remittance() {
   const [availableYears, setAvailableYears] = useState([]);
   const [totalRemittance, setTotalRemittance] = useState(0);
   const [filteredRemittance, setFilteredRemittance] = useState(0);
+  const [filterAllYears, setFilterAllYears] = useState(false);
 
   useEffect(() => {
     fetchRemittances();
   }, []);
 
   useEffect(() => {
-    if (selectedYear) {
+    if (selectedYear || filterAllYears) {
       processChartData();
       calculateFilteredRemittance();
     }
-  }, [selectedYear, selectedMonth, remittances]);
+  }, [selectedYear, selectedMonth, filterAllYears, remittances]);
 
   const fetchRemittances = async () => {
     try {
@@ -130,6 +131,11 @@ function Remittance() {
       const year = date.getFullYear();
       const month = date.getMonth() + 1; // getMonth() returns 0-11
       
+      // If filterAllYears is true, only filter by month; otherwise filter by both year and month
+      if (filterAllYears) {
+        return month === selectedMonth;
+      }
+      
       return year === selectedYear && month === selectedMonth;
     });
 
@@ -141,16 +147,20 @@ function Remittance() {
   };
 
   const processChartData = () => {
-    // Filter by selected year
+    // Filter by selected year or all years
     const filteredRemittances = remittances.filter(deposit => {
       const depositDate = deposit.depositDate || deposit.createdAt || '';
       if (!depositDate) return false;
+      
+      if (filterAllYears) {
+        return true; // Include all years
+      }
       
       const date = new Date(depositDate);
       return date.getFullYear() === selectedYear;
     });
 
-    // Group by month for the selected year
+    // Group by month (across all years if filterAllYears is true)
     const monthlyData = {};
     filteredRemittances.forEach(deposit => {
       const depositDate = deposit.depositDate || deposit.createdAt || '';
@@ -213,7 +223,7 @@ function Remittance() {
           </div>
           <div className="text-right">
             <p className="text-sm text-gray-600">
-              Remittance for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+              Remittance for {months.find(m => m.value === selectedMonth)?.label} {filterAllYears ? 'All Years' : selectedYear}
             </p>
             <p className="text-2xl md:text-3xl font-bold text-gray-800">
               {loading ? 'Loading...' : formatCurrency(filteredRemittance)}
@@ -231,10 +241,18 @@ function Remittance() {
             </label>
             <select
               id="year"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              value={filterAllYears ? 'all' : selectedYear}
+              onChange={(e) => {
+                if (e.target.value === 'all') {
+                  setFilterAllYears(true);
+                } else {
+                  setFilterAllYears(false);
+                  setSelectedYear(parseInt(e.target.value));
+                }
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#006fba] focus:border-transparent"
             >
+              <option value="all">All Years</option>
               {availableYears.length > 0 ? (
                 availableYears.map(year => (
                   <option key={year} value={year}>{year}</option>
@@ -262,14 +280,14 @@ function Remittance() {
           </div>
         </div>
         <p className="text-sm text-gray-500 mt-2">
-          Showing remittance for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}: {formatCurrency(filteredRemittance)}
+          Showing remittance for {months.find(m => m.value === selectedMonth)?.label} {filterAllYears ? 'All Years' : selectedYear}: {formatCurrency(filteredRemittance)}
         </p>
       </div>
 
       {/* Bar Chart */}
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
         <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">
-          Monthly Remittance Chart - {selectedYear}
+          Monthly Remittance Chart - {filterAllYears ? 'All Years' : selectedYear}
         </h2>
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -349,6 +367,12 @@ function Remittance() {
                     const date = new Date(depositDate);
                     const year = date.getFullYear();
                     const month = date.getMonth() + 1; // getMonth() returns 0-11
+                    
+                    // If filterAllYears is true, only filter by month; otherwise filter by both year and month
+                    if (filterAllYears) {
+                      return month === selectedMonth;
+                    }
+                    
                     return year === selectedYear && month === selectedMonth;
                   })
                   .sort((a, b) => {
