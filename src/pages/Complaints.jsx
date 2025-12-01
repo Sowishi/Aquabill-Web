@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { MdReportProblem } from 'react-icons/md';
 
@@ -30,31 +30,78 @@ function Complaints() {
       // Fetch complaints
       const complaintsRef = collection(db, 'complaints');
       const complaintsSnapshot = await getDocs(complaintsRef);
-      const complaintsData = complaintsSnapshot.docs.map(doc => {
-        const data = doc.data();
-        // Find user details
-        const user = usersData.find(u => u.id === data.userId);
-        
-        // Generate complaint ID from document ID
-        const complaintId = `DAM-${String(doc.id).substring(0, 8).toUpperCase()}`;
-        
-        return {
-          id: doc.id,
-          complaintId: complaintId,
-          customerName: data.userName || 'Unknown',
-          accountNumber: user?.accountNumber || 'N/A',
-          meterNumber: user?.meterNumber || 'N/A',
-          contactNumber: user?.contactNumber || data.userEmail || 'N/A',
-          userEmail: data.userEmail || '',
-          userId: data.userId || '',
-          complaintType: data.complaintType || 'General',
-          description: data.description || '',
-          imageUrl: data.imageUrl || data.image || data.photoUrl || null,
-          submittedDate: data.createdAt || new Date().toISOString(),
-          resolvedDate: data.resolvedDate || null,
-          notes: data.notes || ''
-        };
-      });
+      const complaintsData = await Promise.all(
+        complaintsSnapshot.docs.map(async (complaintDoc) => {
+          const data = complaintDoc.data();
+          
+          // Extract userId - handle both string and document reference
+          let userId = '';
+          if (data.userId) {
+            // If userId is a document reference, extract the ID
+            if (typeof data.userId === 'object' && data.userId.id) {
+              userId = data.userId.id;
+            } else if (typeof data.userId === 'string') {
+              userId = data.userId;
+            }
+          }
+          
+          // Always fetch user document from users collection to get account number
+          let user = null;
+          
+          // Try to find user by userId first
+          if (userId) {
+            try {
+              // First try to find in pre-fetched users
+              user = usersData.find(u => u.id === userId);
+              
+              // If not found, fetch directly from Firestore
+              if (!user) {
+                const userDocRef = doc(db, 'users', userId);
+                const userDocSnap = await getDoc(userDocRef);
+                if (userDocSnap.exists()) {
+                  user = {
+                    id: userDocSnap.id,
+                    ...userDocSnap.data()
+                  };
+                }
+              }
+            } catch (error) {
+              console.error(`Error fetching user ${userId} for complaint ${complaintDoc.id}:`, error);
+            }
+          }
+          
+          // Fallback: If user not found by userId, try to find by email
+          if (!user && data.userEmail) {
+            try {
+              user = usersData.find(u => u.email === data.userEmail || u.email?.toLowerCase() === data.userEmail?.toLowerCase());
+              
+              // If still not found in pre-fetched, we could query by email, but for now just use pre-fetched
+            } catch (error) {
+              console.error(`Error finding user by email ${data.userEmail} for complaint ${complaintDoc.id}:`, error);
+            }
+          }
+          
+          // Generate complaint ID from document ID
+          const complaintId = `DAM-${String(complaintDoc.id).substring(0, 8).toUpperCase()}`;
+          
+          return {
+            id: complaintDoc.id,
+            complaintId: complaintId,
+            customerName: data.userName || user?.fullName || user?.name || 'Unknown',
+            accountNumber: user?.accountNumber || 'N/A',
+            meterNumber: user?.meterNumber || 'N/A',
+            contactNumber: user?.contactNumber || data.userEmail || 'N/A',
+            userEmail: data.userEmail || user?.email || '',
+            userId: userId,
+            complaintType: data.complaintType || 'General',
+            description: data.description || '',
+            imageUrl: data.imageUrl || data.image || data.photoUrl || null,
+            submittedDate: data.createdAt || new Date().toISOString(),
+            resolvedDate: data.resolvedDate || null,
+            notes: data.notes || ''
+          };
+        })
+      );
 
       // Sort by date (newest first)
       const sortedComplaints = complaintsData.sort((a, b) => {
