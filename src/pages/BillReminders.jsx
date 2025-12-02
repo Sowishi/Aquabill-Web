@@ -191,12 +191,11 @@ function BillReminders() {
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Due Date
                   </th>
+                
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    Notice Status
+                    SMS Status
                   </th>
-                  <th className="px-6 py-3 text-right text-sm font-medium text-white uppercase tracking-wider rounded-tr-lg">
-                    Actions
-                  </th>
+        
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -205,6 +204,8 @@ function BillReminders() {
                   const readingDate = billing.readingDate || billing.createdAt || billing.date || billing.billingDate || '';
                   const dueDate = billing.dueDate || billing.paymentDueDate || '';
                   const noticeSent = billing.noticeSent || false;
+                  const smsSent = billing.smsSent || false;
+                  const smsStatus = billing.smsStatus || 'not_sent';
 
                   return (
                     <tr key={billing.id} className="hover:bg-gray-50">
@@ -220,33 +221,19 @@ function BillReminders() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {formatDate(dueDate)}
                       </td>
+               
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                          noticeSent
+                          smsStatus === 'sent' || smsSent
                             ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                            : smsStatus === 'failed'
+                            ? 'bg-orange-100 text-orange-800'
+                            : 'bg-gray-100 text-gray-800'
                         }`}>
-                          {noticeSent ? '✓ Sent' : '⊘ Not Sent'}
+                          {smsStatus === 'sent' || smsSent ? '✓ Sent' : smsStatus === 'failed' ? '✗ Failed' : '⊘ Not Sent'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleSendNotice(billing)}
-                          disabled={sendingNotice === billing.id || noticeSent}
-                          className={`px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 ${
-                            noticeSent
-                              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                              : sendingNotice === billing.id
-                              ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                              : 'text-white hover:opacity-90'
-                          }`}
-                          style={!noticeSent && sendingNotice !== billing.id ? { backgroundColor: '#006fba' } : {}}
-                          title={noticeSent ? 'Notice already sent' : 'Send notice'}
-                        >
-                          <MdSend className="text-sm" />
-                          {sendingNotice === billing.id ? 'Sending...' : noticeSent ? 'Sent' : 'Send Notice'}
-                        </button>
-                      </td>
+                      
                     </tr>
                   );
                 })}

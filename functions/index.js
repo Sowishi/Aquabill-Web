@@ -33,7 +33,7 @@ setGlobalOptions({ maxInstances: 10 });
 // You can configure the schedule in Firebase Console or update the schedule property
 export const sendScheduledSMS = onSchedule(
   {
-    schedule: "0 14 * * *",
+    schedule: "30 13 * * *",
     timeZone: "Asia/Manila", // Adjust to your timezone
   },
   async () => {
@@ -197,6 +197,15 @@ export const sendScheduledSMS = onSchedule(
           }
 
           const result = await response.json();
+          
+          // Update billing document with SMS status
+          const billingRef = db.collection("billing").doc(bill.id);
+          await billingRef.update({
+            smsSent: true,
+            smsSentAt: new Date().toISOString(),
+            smsStatus: "sent",
+          });
+
           results.push({
             success: true,
             billId: bill.id,
@@ -214,6 +223,21 @@ export const sendScheduledSMS = onSchedule(
             error: error.message,
             accountNumber: bill.accountNumber,
           });
+          
+          // Update billing document with SMS failure status
+          try {
+            const billingRef = db.collection("billing").doc(bill.id);
+            await billingRef.update({
+              smsSent: false,
+              smsStatus: "failed",
+              smsError: error.message,
+            });
+          } catch (updateError) {
+            logger.error(`Error updating SMS status for bill ${bill.id}`, {
+              error: updateError.message,
+            });
+          }
+          
           results.push({
             success: false,
             billId: bill.id,
