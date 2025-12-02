@@ -108,10 +108,7 @@ function Reports() {
   const getAvailableYears = () => {
     const years = new Set();
     
-    // Populate years from 2025 down to 2020
-    for (let year = 2025; year >= 2020; year--) {
-      years.add(year.toString());
-    }
+  
     
     // Also add years from billings data
     billings.forEach(billing => {
