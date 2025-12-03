@@ -264,7 +264,7 @@ function Reports() {
               <thead style={{ backgroundColor: '#006fba' }} className="rounded-t-lg">
                 <tr>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tl-lg">
-                    User Name
+                   Full Name
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                     Meter Number
