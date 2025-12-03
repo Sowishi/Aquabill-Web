@@ -83,8 +83,17 @@ function Collectors() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    // Limit middleInitial to 1 character
-    const processedValue = name === 'middleInitial' ? value.toUpperCase().slice(0, 1) : value;
+    
+    let processedValue = value;
+    
+    // Limit middleInitial to 1 character and remove non-letters
+    if (name === 'middleInitial') {
+      processedValue = value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 1);
+    } else if (name === 'firstName' || name === 'lastName') {
+      // Remove numbers and special characters from first and last name
+      processedValue = value.replace(/[^A-Za-z\s'-]/g, '');
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: processedValue
@@ -106,6 +115,8 @@ function Collectors() {
       newErrors.firstName = 'First name is required';
     } else if (formData.firstName.trim().length < 2) {
       newErrors.firstName = 'First name must be at least 2 characters';
+    } else if (/\d/.test(formData.firstName.trim())) {
+      newErrors.firstName = 'First name cannot contain numbers';
     }
 
     // Last Name validation
@@ -113,6 +124,8 @@ function Collectors() {
       newErrors.lastName = 'Last name is required';
     } else if (formData.lastName.trim().length < 2) {
       newErrors.lastName = 'Last name must be at least 2 characters';
+    } else if (/\d/.test(formData.lastName.trim())) {
+      newErrors.lastName = 'Last name cannot contain numbers';
     }
 
     // Email validation
