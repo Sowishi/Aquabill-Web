@@ -567,7 +567,7 @@ function Household() {
       fetchUsers();
     } catch (error) {
       console.error('Error archiving user:', error);
-      setErrorMessage('Failed to archive user. ' + error.message);
+      setErrorMessage('Failed to archive consumer. ' + error.message);
       setShowErrorModal(true);
     } finally {
       setLoading(false);
@@ -794,7 +794,7 @@ function Household() {
       fetchUsers();
     } catch (error) {
       console.error('Error restoring user:', error);
-      setErrorMessage('Failed to restore user. ' + error.message);
+      setErrorMessage('Failed to restore consumer. ' + error.message);
       setShowErrorModal(true);
     } finally {
       setLoading(false);
@@ -883,7 +883,7 @@ function Household() {
 
         await updateDoc(userRef, updateData);
 
-        setSuccessMessage('User updated successfully!');
+        setSuccessMessage('Consumer updated successfully!');
         setShowSuccessModal(true);
 
         // Reset form
@@ -974,13 +974,13 @@ function Household() {
             formData.accountNumber
           );
           setSuccessMessage(
-            `User created successfully! An email with the temporary password has been sent to ${formData.email}. `
+            `Consumer created successfully! An email with the temporary password has been sent to ${formData.email}. `
           );
           setShowSuccessModal(true);
         } catch (emailError) {
-          // User created but email failed
+          // Consumer created but email failed
           setSuccessMessage(
-            `User created successfully! However, email sending failed.`
+            `Consumer created successfully! However, email sending failed.`
           );
           setShowSuccessModal(true);
         }
@@ -1008,7 +1008,7 @@ function Household() {
 
     } catch (error) {
       console.error('Error saving user:', error);
-      let errorMsg = isEditMode ? 'Failed to update user. ' : 'Failed to create user. ';
+      let errorMsg = isEditMode ? 'Failed to update consumer. ' : 'Failed to create consumer. ';
       
       if (error.message) {
         errorMsg += error.message;
@@ -1066,7 +1066,7 @@ function Household() {
           <div className="relative flex-1">
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder="Search consumers..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-3 md:px-4 py-2 md:py-3 pl-10 md:pl-12 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1101,8 +1101,8 @@ function Household() {
             style={{ backgroundColor: '#006fba' }}
           >
             <span className="text-xl">+</span>
-            <span className="hidden sm:inline">Create New User</span>
-            <span className="sm:hidden">New User</span>
+            <span className="hidden sm:inline">Create New Consumer</span>
+            <span className="sm:hidden">New Consumer</span>
           </button>
         </div>
       </div>
@@ -1110,20 +1110,20 @@ function Household() {
       {/* Users List */}
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
-          <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Accounts</h2>
+          <h2 className="text-lg md:text-xl font-bold text-gray-800">Registered Consumers</h2>
           <p className="text-xs md:text-sm text-gray-500">
-            Showing {filteredUsers.length} of {users.length} users
+            Showing {filteredUsers.length} of {users.length} consumers
           </p>
         </div>
       {users.length === 0 ? (
         <div className="text-center py-12">
           <MdHome className="text-6xl mb-4 mx-auto" />
-          <p className="text-gray-500">No users registered yet</p>
+          <p className="text-gray-500">No consumers registered yet</p>
         </div>
       ) : filteredUsers.length === 0 ? (
         <div className="text-center py-12">
           <MdSearch className="text-6xl mb-4 mx-auto" />
-          <p className="text-gray-500">No users found matching your search</p>
+          <p className="text-gray-500">No consumers found matching your search</p>
           <button
             onClick={() => setSearchTerm('')}
             className="mt-4 font-medium text-sm md:text-base hover:opacity-80 transition"
@@ -1457,7 +1457,7 @@ function Household() {
             <div className="p-4 md:p-6 border-b border-gray-200">
               <div className="flex justify-between items-center">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-                  {isEditMode ? 'Edit User' : 'Create New User'}
+                  {isEditMode ? 'Edit Consumer' : 'Create New Consumer'}
                 </h2>
                 <button
                   onClick={() => {
@@ -1878,7 +1878,7 @@ function Household() {
             <div className="p-6 border-b border-gray-200 print:border-0 print:pb-2">
               <div className="flex justify-between items-center print:justify-center">
                 <h2 className="text-xl md:text-2xl font-bold text-gray-800 print:text-center">
-                  Household QR Code
+                  Consumer QR Code
                 </h2>
                 <button
                   onClick={() => {
@@ -1926,7 +1926,7 @@ function Household() {
               {/* Instructions */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 print:hidden">
                 <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> This QR code contains the household ID and can be scanned for quick identification and billing purposes.
+                  <strong>Note:</strong> This QR code contains the consumer ID and can be scanned for quick identification and billing purposes.
                 </p>
               </div>
 
@@ -1961,7 +1961,7 @@ function Household() {
                   Generated on {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
                 </p>
                 <p className="text-xs text-gray-500 mt-2 italic">
-                  Scan this QR code for household verification and billing
+                  Scan this QR code for consumer verification and billing
                 </p>
               </div>
             </div>

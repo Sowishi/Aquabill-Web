@@ -78,7 +78,7 @@ function Dashboard() {
     // Admin navigation items
     return [
       { name: 'Dashboard', path: '/dashboard', icon: MdDashboard },
-      { name: 'Household', path: '/dashboard/household', icon: MdHome },
+      { name: 'Consumers', path: '/dashboard/household', icon: MdHome },
       { name: 'Bill Reminders', path: '/dashboard/bill-reminders', icon: MdEmail },
       { name: 'Collectors', path: '/dashboard/collectors', icon: MdPeople },
       { name: 'Announcements', path: '/dashboard/announcements', icon: MdAnnouncement },
