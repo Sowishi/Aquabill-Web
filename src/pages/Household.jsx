@@ -1233,7 +1233,7 @@ function Household() {
                                 className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                               >
                                 <MdHistory className="text-lg" />
-                                <span>Consumed History</span>
+                                <span>Consumption History</span>
                               </button>
                             </div>
                           )}
@@ -1399,7 +1399,7 @@ function Household() {
                                     className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
                                   >
                                     <MdHistory className="text-lg" />
-                                    <span>Consumed History</span>
+                                    <span>Consumption History</span>
                                   </button>
                                 </div>
                               )}
@@ -2154,7 +2154,7 @@ function Household() {
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h2 className="text-xl md:text-2xl font-bold text-gray-800">
-                    Consumed History
+                    Consumption History
                   </h2>
                   <p className="text-sm text-gray-600 mt-1">
                     {selectedUserForConsumedHistory.fullName} - Meter #: {selectedUserForConsumedHistory.meterNumber}
