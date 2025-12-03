@@ -69,6 +69,38 @@ function BillReminders() {
       });
     }
 
+    // Sort alphabetically by household name, then by collector if available
+    filtered.sort((a, b) => {
+      const userA = users.find(u => 
+        u.id === a.userId || 
+        u.meterNumber === a.meterNumber ||
+        u.id === a.householdId
+      );
+      const userB = users.find(u => 
+        u.id === b.userId || 
+        u.meterNumber === b.meterNumber ||
+        u.id === b.householdId
+      );
+      
+      const nameA = userA?.fullName || 'Unknown Household';
+      const nameB = userB?.fullName || 'Unknown Household';
+      
+      // First sort by household name
+      const householdCompare = nameA.localeCompare(nameB, undefined, { sensitivity: 'base' });
+      if (householdCompare !== 0) {
+        return householdCompare;
+      }
+      
+      // If household names are the same, sort by collector if available
+      const collectorA = a.collectorName || a.collectorId || '';
+      const collectorB = b.collectorName || b.collectorId || '';
+      if (collectorA && collectorB) {
+        return collectorA.localeCompare(collectorB, undefined, { sensitivity: 'base' });
+      }
+      
+      return 0;
+    });
+
     setFilteredBillings(filtered);
   };
 
@@ -193,7 +225,7 @@ function BillReminders() {
                   </th>
                 
                   <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
-                    SMS Status
+                    SMS Notice Deadline Status
                   </th>
         
                 </tr>
