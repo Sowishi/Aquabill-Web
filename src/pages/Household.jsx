@@ -1580,7 +1580,7 @@ function Household() {
                 {/* Middle Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Middle Name (Initials Only)
+                    Middle Initial
                   </label>
                   <input
                     type="text"
@@ -1731,14 +1731,19 @@ function Household() {
                   onChange={handleInputChange}
                   className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.meterNumber ? 'border-red-500' : 'border-gray-300'
-                  } ${isEditMode ? '' : 'bg-gray-50'}`}
+                  } ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : 'bg-gray-50'}`}
                   placeholder="Enter meter number"
-                  disabled={loading || !isEditMode}
-                  readOnly={!isEditMode}
+                  disabled={loading || isEditMode}
+                  readOnly={isEditMode}
                 />
                 {!isEditMode && (
                   <p className="text-xs text-gray-500 mt-1">
                     Meter number is automatically generated
+                  </p>
+                )}
+                {isEditMode && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Meter number cannot be edited
                   </p>
                 )}
                 {errors.meterNumber && (
@@ -1758,14 +1763,19 @@ function Household() {
                   onChange={handleInputChange}
                   className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     errors.accountNumber ? 'border-red-500' : 'border-gray-300'
-                  } ${isEditMode ? '' : 'bg-gray-50'}`}
+                  } ${isEditMode ? 'bg-gray-100 cursor-not-allowed' : 'bg-gray-50'}`}
                   placeholder="Enter account number"
-                  disabled={loading || !isEditMode}
-                  readOnly={!isEditMode}
+                  disabled={loading || isEditMode}
+                  readOnly={isEditMode}
                 />
                 {!isEditMode && (
                   <p className="text-xs text-gray-500 mt-1">
                     Account number is automatically generated
+                  </p>
+                )}
+                {isEditMode && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Account number cannot be edited
                   </p>
                 )}
                 {errors.accountNumber && (
