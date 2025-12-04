@@ -44,7 +44,7 @@ function Login() {
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          filter: 'blur(8px)',
+          filter: 'blur(1px)',
           transform: 'scale(1.1)'
         }}
       />
@@ -56,12 +56,15 @@ function Login() {
             <img 
               src={aquabillLogo} 
               alt="AquaBill Logo" 
-              className="h-32 w-auto mx-auto mb-6"
+              className="h-46 w-auto mx-auto mb-1"
             />
             <p className="text-gray-700 text-sm leading-relaxed max-w-md mx-auto font-bold">
-              <span className="font-bold text-2xl text-gray-900">AQUA-BILL:Developing a Water Billing Management System for Magahis III WEST Water System. </span> 
+              <span className="font-bold text-2xl text-[#006fba]">Simplifying Water Management, One Drop at a Time</span> 
               <br /><br />
-              Ensure your home or community enjoys efficient and sustainable water services! Our advanced water management system offers monitoring, billing automation, leak detection, and consumption tracking. All designed to save you time, money, and resources.
+              <span className="text-[#006fba]">Ensure your home and community enjoy efficient and sustainable water services! We provide safe and reliable clean water for every household. Together, we promote sustainability and ensure the well-being of every neighborhood we serve.</span>
+              <div className="mt-10 text-center text-gray-500 text-sm">
+                <span>Copyright © Aqua-Bill 2025</span>
+              </div>
             </p>
           </div>
         </div>
@@ -115,7 +118,6 @@ function Login() {
               />
             </div>
 
-
             <button
               type="submit"
               disabled={loading}
@@ -135,14 +137,8 @@ function Login() {
           </form>
         </div>
       </div>
-      
-      {/* Copyright */}
-      <div className="absolute bottom-4 left-0 right-0 text-center text-white/80 text-sm z-10">
-        © 2025 aquabill
-      </div>
     </div>
   )
 }
 
 export default Login
-
