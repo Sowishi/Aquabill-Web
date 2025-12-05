@@ -3,6 +3,7 @@ import { collection, addDoc, getDocs, query, where, doc, updateDoc } from 'fireb
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
 import { MdPeople, MdSearch, MdFilterList } from 'react-icons/md';
+import Pagination from '../components/Pagination';
 
 function Collectors() {
   const [showModal, setShowModal] = useState(false);
@@ -29,6 +30,8 @@ function Collectors() {
   const [errorMessage, setErrorMessage] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Fetch collectors from Firestore
   useEffect(() => {
@@ -63,6 +66,7 @@ function Collectors() {
     }
 
     setFilteredCollectors(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, filterStatus, collectors]);
 
   const fetchCollectors = async () => {
@@ -516,6 +520,17 @@ function Collectors() {
     }
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentCollectors = filteredCollectors.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredCollectors.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-4 md:space-y-6 mx-4 md:mx-6">
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
@@ -630,7 +645,7 @@ function Collectors() {
           <>
             {/* Mobile Card View */}
             <div className="block lg:hidden space-y-4">
-              {filteredCollectors.map((collector) => (
+              {currentCollectors.map((collector) => (
                 <div key={collector.id} className="border rounded-lg p-4 bg-white">
                   <div className="flex gap-3 mb-3">
                     <img 
@@ -734,7 +749,7 @@ function Collectors() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCollectors.map((collector) => (
+                {currentCollectors.map((collector) => (
                   <tr key={collector.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -811,6 +826,15 @@ function Collectors() {
               </tbody>
             </table>
             </div>
+            {filteredCollectors.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredCollectors.length}
+              />
+            )}
           </>
         )}
       </div>

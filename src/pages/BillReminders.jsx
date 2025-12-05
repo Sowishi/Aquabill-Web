@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { MdEmail, MdSearch, MdSend } from 'react-icons/md';
+import Pagination from '../components/Pagination';
 
 function BillReminders() {
   const [billings, setBillings] = useState([]);
@@ -9,6 +10,8 @@ function BillReminders() {
   const [filteredBillings, setFilteredBillings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const [sendingNotice, setSendingNotice] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -21,6 +24,7 @@ function BillReminders() {
 
   useEffect(() => {
     filterBillings();
+    setCurrentPage(1); // Reset to first page when filters change
   }, [billings, searchTerm]);
 
   const fetchData = async () => {
@@ -186,6 +190,17 @@ function BillReminders() {
     }
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentBillings = filteredBillings.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBillings.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-6 mx-4 md:mx-6">
       {/* Header with Search and Send Notice Button */}
@@ -231,7 +246,7 @@ function BillReminders() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredBillings.map((billing) => {
+                {currentBillings.map((billing) => {
                   const user = getUserInfo(billing);
                   const readingDate = billing.readingDate || billing.createdAt || billing.date || billing.billingDate || '';
                   const dueDate = billing.dueDate || billing.paymentDueDate || '';
@@ -271,6 +286,15 @@ function BillReminders() {
                 })}
               </tbody>
             </table>
+            {filteredBillings.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredBillings.length}
+              />
+            )}
           </div>
         )}
       </div>

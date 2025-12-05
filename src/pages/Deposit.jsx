@@ -4,6 +4,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
 import { useAuth } from '../context/AuthContext';
 import { MdAccountBalance, MdUpload, MdImage, MdSave } from 'react-icons/md';
+import Pagination from '../components/Pagination';
 
 function Deposit() {
   const { user } = useAuth();
@@ -24,6 +25,8 @@ function Deposit() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errors, setErrors] = useState({});
   const [viewingImage, setViewingImage] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchDeposits();
@@ -221,6 +224,17 @@ function Deposit() {
 
   const formatCurrency = (amount) => {
     return `₱${parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentDeposits = deposits.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(deposits.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -429,10 +443,12 @@ function Deposit() {
                 </tr>
               </thead>
               <tbody>
-                {deposits.map((deposit, index) => (
+                {currentDeposits.map((deposit, index) => {
+                  const actualIndex = indexOfFirstItem + index;
+                  return (
                   <tr
                     key={deposit.id}
-                    className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                    className={`border-b border-gray-200 ${actualIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                   >
                     <td className="px-4 py-3 text-gray-700">{formatDate(deposit.depositDate)}</td>
                     <td className="px-4 py-3 text-gray-700 font-semibold">{formatCurrency(deposit.amount)}</td>
@@ -452,9 +468,19 @@ function Deposit() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
+            {deposits.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={deposits.length}
+              />
+            )}
           </div>
         )}
       </div>

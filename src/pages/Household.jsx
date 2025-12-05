@@ -4,6 +4,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
 import { QRCodeSVG } from 'qrcode.react';
 import { MdHome, MdSearch, MdFilterList, MdReceipt, MdPayment, MdHistory } from 'react-icons/md';
+import Pagination from '../components/Pagination';
 
 function Household() {
   const [showModal, setShowModal] = useState(false);
@@ -51,6 +52,18 @@ function Household() {
   const [loadingConsumedHistory, setLoadingConsumedHistory] = useState(false);
   const [consumedHistoryFilterMonth, setConsumedHistoryFilterMonth] = useState('');
   const [consumedHistoryFilterYear, setConsumedHistoryFilterYear] = useState('');
+  
+  // Pagination state for main table
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5);
+  
+  // Pagination state for payment history modal
+  const [paymentHistoryCurrentPage, setPaymentHistoryCurrentPage] = useState(1);
+  const [paymentHistoryItemsPerPage] = useState(10);
+  
+  // Pagination state for consumption history modal
+  const [consumedHistoryCurrentPage, setConsumedHistoryCurrentPage] = useState(1);
+  const [consumedHistoryItemsPerPage] = useState(10);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -108,6 +121,7 @@ function Household() {
     }
 
     setFilteredUsers(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, filterStatus, users]);
 
   const fetchUsers = async () => {
@@ -761,6 +775,49 @@ function Household() {
     return filtered;
   };
 
+  // Pagination logic for main table
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Pagination logic for payment history
+  const filteredPaymentHistory = getFilteredPaymentHistory();
+  const paymentHistoryIndexOfLastItem = paymentHistoryCurrentPage * paymentHistoryItemsPerPage;
+  const paymentHistoryIndexOfFirstItem = paymentHistoryIndexOfLastItem - paymentHistoryItemsPerPage;
+  const currentPaymentHistory = filteredPaymentHistory.slice(paymentHistoryIndexOfFirstItem, paymentHistoryIndexOfLastItem);
+  const paymentHistoryTotalPages = Math.ceil(filteredPaymentHistory.length / paymentHistoryItemsPerPage);
+
+  const handlePaymentHistoryPageChange = (page) => {
+    setPaymentHistoryCurrentPage(page);
+  };
+
+  // Pagination logic for consumption history
+  const filteredConsumedHistory = getFilteredConsumedHistory();
+  const consumedHistoryIndexOfLastItem = consumedHistoryCurrentPage * consumedHistoryItemsPerPage;
+  const consumedHistoryIndexOfFirstItem = consumedHistoryIndexOfLastItem - consumedHistoryItemsPerPage;
+  const currentConsumedHistory = filteredConsumedHistory.slice(consumedHistoryIndexOfFirstItem, consumedHistoryIndexOfLastItem);
+  const consumedHistoryTotalPages = Math.ceil(filteredConsumedHistory.length / consumedHistoryItemsPerPage);
+
+  const handleConsumedHistoryPageChange = (page) => {
+    setConsumedHistoryCurrentPage(page);
+  };
+
+  // Reset pagination when payment history filters change
+  useEffect(() => {
+    setPaymentHistoryCurrentPage(1);
+  }, [paymentHistoryFilterMonth, paymentHistoryFilterYear]);
+
+  // Reset pagination when consumption history filters change
+  useEffect(() => {
+    setConsumedHistoryCurrentPage(1);
+  }, [consumedHistoryFilterMonth, consumedHistoryFilterYear]);
+
   // Get unique years from history
   const getAvailableYears = (history) => {
     const years = new Set();
@@ -1134,9 +1191,9 @@ function Household() {
         </div>
       ) : (
         <>
-          {/* Mobile Card View */}
+            {/* Mobile Card View */}
           <div className="block lg:hidden space-y-4">
-              {filteredUsers.map((user) => (
+              {currentUsers.map((user) => (
                 <div key={user.id} className={`border rounded-lg p-4 ${user.isArchived ? 'bg-gray-50' : 'bg-white'}`}>
                   <div className="flex gap-3 mb-3">
                     <img 
@@ -1310,7 +1367,7 @@ function Household() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200 ">
-                {filteredUsers.map((user) => (
+                {currentUsers.map((user) => (
                   <tr key={user.id} className={`hover:bg-gray-50 ${user.isArchived ? 'bg-gray-50' : ''}`}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
@@ -1445,6 +1502,15 @@ function Household() {
                 ))}
               </tbody>
             </table>
+            {filteredUsers.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredUsers.length}
+              />
+            )}
             </div>
           </>
         )}
@@ -2043,7 +2109,7 @@ function Household() {
                 <div className="flex justify-center items-center py-12">
                   <div className="text-gray-500">Loading payment history...</div>
                 </div>
-              ) : getFilteredPaymentHistory().length === 0 ? (
+              ) : filteredPaymentHistory.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <MdPayment className="text-6xl text-gray-300 mb-4" />
                   <p className="text-gray-500 text-lg">No payment history found</p>
@@ -2077,7 +2143,7 @@ function Household() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {getFilteredPaymentHistory().map((billing) => {
+                      {currentPaymentHistory.map((billing) => {
                         const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
                         const paymentDate = billing.paymentDate || billing.paidAt || '';
                         const status = billing.status || billing.paymentStatus || (billing.paid ? 'paid' : 'unpaid');
@@ -2122,6 +2188,15 @@ function Household() {
                       })}
                     </tbody>
                   </table>
+                  {filteredPaymentHistory.length > 0 && (
+                    <Pagination
+                      currentPage={paymentHistoryCurrentPage}
+                      totalPages={paymentHistoryTotalPages}
+                      onPageChange={handlePaymentHistoryPageChange}
+                      itemsPerPage={paymentHistoryItemsPerPage}
+                      totalItems={filteredPaymentHistory.length}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -2135,6 +2210,7 @@ function Household() {
                   setPaymentHistory([]);
                   setPaymentHistoryFilterMonth('');
                   setPaymentHistoryFilterYear('');
+                  setPaymentHistoryCurrentPage(1);
                 }}
                 className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors duration-200"
               >
@@ -2219,7 +2295,7 @@ function Household() {
                 <div className="flex justify-center items-center py-12">
                   <div className="text-gray-500">Loading consumed history...</div>
                 </div>
-              ) : getFilteredConsumedHistory().length === 0 ? (
+              ) : filteredConsumedHistory.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12">
                   <MdHistory className="text-6xl text-gray-300 mb-4" />
                   <p className="text-gray-500 text-lg">No consumed history found</p>
@@ -2253,7 +2329,7 @@ function Household() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {getFilteredConsumedHistory().map((billing) => {
+                      {currentConsumedHistory.map((billing) => {
                         const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
                         const consumption = billing.consumption || billing.waterConsumption || billing.consumed || '0';
                         const previousReading = billing.previousConsumption || billing.prevReading || billing.lastReading || 'N/A';
@@ -2288,6 +2364,15 @@ function Household() {
                       })}
                     </tbody>
                   </table>
+                  {filteredConsumedHistory.length > 0 && (
+                    <Pagination
+                      currentPage={consumedHistoryCurrentPage}
+                      totalPages={consumedHistoryTotalPages}
+                      onPageChange={handleConsumedHistoryPageChange}
+                      itemsPerPage={consumedHistoryItemsPerPage}
+                      totalItems={filteredConsumedHistory.length}
+                    />
+                  )}
                 </div>
               )}
             </div>
@@ -2301,6 +2386,7 @@ function Household() {
                   setConsumedHistory([]);
                   setConsumedHistoryFilterMonth('');
                   setConsumedHistoryFilterYear('');
+                  setConsumedHistoryCurrentPage(1);
                 }}
                 className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors duration-200"
               >

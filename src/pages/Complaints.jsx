@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { MdReportProblem } from 'react-icons/md';
+import Pagination from '../components/Pagination';
 
 function Complaints() {
   const [complaints, setComplaints] = useState([]);
@@ -9,6 +10,8 @@ function Complaints() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   // Fetch complaints and users from Firebase
   useEffect(() => {
@@ -118,6 +121,16 @@ function Complaints() {
     }
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentComplaints = complaints.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(complaints.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <div className="space-y-4 md:space-y-6 mx-4 md:mx-6">
@@ -172,7 +185,7 @@ function Complaints() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {complaints.map((complaint) => (
+                {currentComplaints.map((complaint) => (
                   <tr key={complaint.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {complaint.submittedDate ? new Date(complaint.submittedDate).toLocaleDateString('en-US', {
@@ -229,6 +242,15 @@ function Complaints() {
                 ))}
               </tbody>
             </table>
+            {complaints.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={complaints.length}
+              />
+            )}
           </div>
         )}
       </div>

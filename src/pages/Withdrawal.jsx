@@ -4,6 +4,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../firebase';
 import { useAuth } from '../context/AuthContext';
 import { MdRemoveCircle, MdUpload, MdImage, MdSave } from 'react-icons/md';
+import Pagination from '../components/Pagination';
 
 function Withdrawal() {
   const { user } = useAuth();
@@ -24,6 +25,8 @@ function Withdrawal() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errors, setErrors] = useState({});
   const [viewingImage, setViewingImage] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchWithdrawals();
@@ -221,6 +224,17 @@ function Withdrawal() {
 
   const formatCurrency = (amount) => {
     return `₱${parseFloat(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentWithdrawals = withdrawals.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(withdrawals.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -429,10 +443,12 @@ function Withdrawal() {
                 </tr>
               </thead>
               <tbody>
-                {withdrawals.map((withdrawal, index) => (
+                {currentWithdrawals.map((withdrawal, index) => {
+                  const actualIndex = indexOfFirstItem + index;
+                  return (
                   <tr
                     key={withdrawal.id}
-                    className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                    className={`border-b border-gray-200 ${actualIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                   >
                     <td className="px-4 py-3 text-gray-700">{formatDate(withdrawal.withdrawalDate)}</td>
                     <td className="px-4 py-3 text-gray-700 font-semibold">{formatCurrency(withdrawal.amount)}</td>
@@ -452,9 +468,19 @@ function Withdrawal() {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
+            {withdrawals.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={withdrawals.length}
+              />
+            )}
           </div>
         )}
       </div>

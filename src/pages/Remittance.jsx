@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../context/AuthContext';
+import Pagination from '../components/Pagination';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -49,6 +50,8 @@ function Remittance() {
   const [totalRemittance, setTotalRemittance] = useState(0);
   const [filteredRemittance, setFilteredRemittance] = useState(0);
   const [filterAllYears, setFilterAllYears] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchRemittances();
@@ -208,9 +211,46 @@ function Remittance() {
         day: 'numeric'
       });
     } catch {
-      return 'N/A';
-    }
+    return 'N/A';
+  }
+};
+
+  // Filter and sort remittances based on selected filters
+  const filteredRemittances = remittances
+    .filter(deposit => {
+      const depositDate = deposit.depositDate || deposit.createdAt || '';
+      if (!depositDate) return false;
+      const date = new Date(depositDate);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      
+      if (filterAllYears) {
+        return month === selectedMonth;
+      }
+      
+      return year === selectedYear && month === selectedMonth;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.depositDate || a.createdAt || 0);
+      const dateB = new Date(b.depositDate || b.createdAt || 0);
+      return dateB - dateA;
+    });
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentRemittances = filteredRemittances.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredRemittances.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedYear, selectedMonth, filterAllYears]);
 
   return (
     <div className="space-y-6 mx-4 md:mx-6">
@@ -360,30 +400,12 @@ function Remittance() {
                 </tr>
               </thead>
               <tbody>
-                {remittances
-                  .filter(deposit => {
-                    const depositDate = deposit.depositDate || deposit.createdAt || '';
-                    if (!depositDate) return false;
-                    const date = new Date(depositDate);
-                    const year = date.getFullYear();
-                    const month = date.getMonth() + 1; // getMonth() returns 0-11
-                    
-                    // If filterAllYears is true, only filter by month; otherwise filter by both year and month
-                    if (filterAllYears) {
-                      return month === selectedMonth;
-                    }
-                    
-                    return year === selectedYear && month === selectedMonth;
-                  })
-                  .sort((a, b) => {
-                    const dateA = new Date(a.depositDate || a.createdAt || 0);
-                    const dateB = new Date(b.depositDate || b.createdAt || 0);
-                    return dateB - dateA;
-                  })
-                  .map((deposit, index) => (
+                {currentRemittances.map((deposit, index) => {
+                  const actualIndex = indexOfFirstItem + index;
+                  return (
                     <tr
                       key={deposit.id}
-                      className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                      className={`border-b border-gray-200 ${actualIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                     >
                       <td className="px-4 py-3 text-gray-700">{formatDate(deposit.depositDate)}</td>
                       <td className="px-4 py-3 text-gray-700 font-semibold">{formatCurrency(deposit.amount)}</td>
@@ -401,12 +423,22 @@ function Remittance() {
                           </a>
                         ) : (
                           <span className="text-gray-400">No image</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                      )}
+                    </td>
+                  </tr>
+                  );
+                })}
               </tbody>
             </table>
+            {filteredRemittances.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredRemittances.length}
+              />
+            )}
           </div>
         )}
       </div>

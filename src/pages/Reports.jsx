@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { MdAssessment, MdSearch, MdFilterList } from 'react-icons/md';
+import Pagination from '../components/Pagination';
 
 function Reports() {
   const [billings, setBillings] = useState([]);
@@ -11,6 +12,8 @@ function Reports() {
   const [filterYear, setFilterYear] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchData();
@@ -18,6 +21,7 @@ function Reports() {
 
   useEffect(() => {
     filterBillings();
+    setCurrentPage(1); // Reset to first page when filters change
   }, [billings, searchTerm, filterYear, filterMonth]);
 
   const fetchData = async () => {
@@ -158,6 +162,17 @@ function Reports() {
     return null;
   };
 
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentBillings = filteredBillings.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredBillings.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-6 mx-4 md:mx-6">
       {/* Search and Filters Container */}
@@ -284,7 +299,7 @@ function Reports() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredBillings.map((billing) => {
+                {currentBillings.map((billing) => {
                   const billingDate = billing.createdAt || billing.date || billing.billingDate || '';
                   const paymentDate = billing.paymentDate || billing.paidAt || billingDate;
                   const amount = billing.amount || billing.totalAmount || billing.billAmount || '0';
@@ -322,6 +337,15 @@ function Reports() {
                 })}
               </tbody>
             </table>
+            {filteredBillings.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredBillings.length}
+              />
+            )}
           </div>
         )}
       </div>

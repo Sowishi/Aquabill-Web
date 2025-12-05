@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, addDoc, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { MdSettings, MdSave, MdHistory } from 'react-icons/md';
+import Pagination from '../components/Pagination';
 
 function RateSettings() {
   const [currentRate, setCurrentRate] = useState('');
@@ -14,6 +15,8 @@ function RateSettings() {
   const [settingsDocId, setSettingsDocId] = useState(null);
   const [rateHistory, setRateHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchRateSettings();
@@ -128,6 +131,17 @@ function RateSettings() {
     }
   };
 
+  // Pagination logic for rate history
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentRateHistory = rateHistory.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(rateHistory.length / itemsPerPage);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="space-y-6 mx-4 md:mx-6">
       {/* Header */}
@@ -222,7 +236,8 @@ function RateSettings() {
                 </tr>
               </thead>
               <tbody>
-                {rateHistory.map((history, index) => {
+                {currentRateHistory.map((history, index) => {
+                  const actualIndex = indexOfFirstItem + index;
                   const prevRate = parseFloat(history.previousRate || 0);
                   const newRate = parseFloat(history.newRate || 0);
                   const change = newRate - prevRate;
@@ -231,7 +246,7 @@ function RateSettings() {
                   return (
                     <tr 
                       key={history.id} 
-                      className={`border-b border-gray-200 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                      className={`border-b border-gray-200 ${actualIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
                     >
                       <td className="px-4 py-3 text-gray-700 font-semibold">₱{newRate.toFixed(2)}</td>
                      
@@ -251,9 +266,15 @@ function RateSettings() {
                 })}
               </tbody>
             </table>
-            
-
-            
+            {rateHistory.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={rateHistory.length}
+              />
+            )}
           </div>
         )}
       </div>
