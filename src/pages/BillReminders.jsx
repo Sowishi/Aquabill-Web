@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { MdEmail, MdSearch, MdSend } from 'react-icons/md';
+import { MdEmail, MdSearch, MdSend, MdFilterList } from 'react-icons/md';
 import Pagination from '../components/Pagination';
 
 function BillReminders() {
@@ -9,6 +9,8 @@ function BillReminders() {
   const [users, setUsers] = useState([]);
   const [filteredBillings, setFilteredBillings] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
@@ -25,7 +27,7 @@ function BillReminders() {
   useEffect(() => {
     filterBillings();
     setCurrentPage(1); // Reset to first page when filters change
-  }, [billings, searchTerm]);
+  }, [billings, searchTerm, filterYear, filterMonth]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -68,6 +70,40 @@ function BillReminders() {
         );
         if (user) {
           return user.fullName?.toLowerCase().includes(searchTerm.toLowerCase());
+        }
+        return false;
+      });
+    }
+
+    // Filter by year
+    if (filterYear) {
+      filtered = filtered.filter(billing => {
+        const billingDate = billing.readingDate || billing.createdAt || billing.date || billing.billingDate || billing.dueDate || billing.paymentDueDate || '';
+        if (billingDate) {
+          const date = new Date(billingDate);
+          const year = date.getFullYear();
+          // Ignore invalid dates (NaN)
+          if (isNaN(year) || year <= 0) {
+            return false;
+          }
+          return year.toString() === filterYear;
+        }
+        return false;
+      });
+    }
+
+    // Filter by month
+    if (filterMonth) {
+      filtered = filtered.filter(billing => {
+        const billingDate = billing.readingDate || billing.createdAt || billing.date || billing.billingDate || billing.dueDate || billing.paymentDueDate || '';
+        if (billingDate) {
+          const date = new Date(billingDate);
+          const month = date.getMonth();
+          // Ignore invalid dates (NaN)
+          if (isNaN(month) || month < 0 || month > 11) {
+            return false;
+          }
+          return String(month + 1).padStart(2, '0') === filterMonth;
         }
         return false;
       });
@@ -201,10 +237,89 @@ function BillReminders() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Get available years from billings
+  const getAvailableYears = () => {
+    const years = new Set();
+    billings.forEach(billing => {
+      const billingDate = billing.readingDate || billing.createdAt || billing.date || billing.billingDate || billing.dueDate || billing.paymentDueDate || '';
+      if (billingDate) {
+        const date = new Date(billingDate);
+        const year = date.getFullYear();
+        // Only add valid years (not NaN)
+        if (!isNaN(year) && year > 0) {
+          years.add(year.toString());
+        }
+      }
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  };
+
   return (
     <div className="space-y-6 mx-4 md:mx-6">
-      {/* Header with Search and Send Notice Button */}
- 
+      {/* Header with Filters */}
+      <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
+        <div className="flex flex-col md:flex-row gap-4 mb-4">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <MdEmail className="text-2xl text-[#006fba]" />
+            Bill Reminders
+          </h2>
+        </div>
+        
+        {/* Filters */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Search Filter */}
+          <div className="relative">
+            <MdSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search by household name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#006fba]"
+            />
+          </div>
+
+          {/* Year Filter */}
+          <div className="relative">
+            <MdFilterList className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <select
+              value={filterYear}
+              onChange={(e) => setFilterYear(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#006fba] appearance-none bg-white"
+            >
+              <option value="">All Years</option>
+              {getAvailableYears().map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Month Filter */}
+          <div className="relative">
+            <MdFilterList className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+            <select
+              value={filterMonth}
+              onChange={(e) => setFilterMonth(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#006fba] appearance-none bg-white"
+            >
+              <option value="">All Months</option>
+              <option value="01">January</option>
+              <option value="02">February</option>
+              <option value="03">March</option>
+              <option value="04">April</option>
+              <option value="05">May</option>
+              <option value="06">June</option>
+              <option value="07">July</option>
+              <option value="08">August</option>
+              <option value="09">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {/* Table */}
       <div className="bg-white rounded-xl shadow-md p-4 md:p-6">
         {loading ? (
