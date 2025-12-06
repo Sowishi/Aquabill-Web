@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../firebase';
-import { MdHome, MdPeople, MdAnnouncement, MdTrendingUp, MdAccountBalance } from 'react-icons/md';
+import { MdHome, MdPeople, MdAnnouncement, MdTrendingUp, MdAccountBalance, MdFilterList } from 'react-icons/md';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -48,6 +48,9 @@ function DashboardHome() {
   });
   const [recentAnnouncements, setRecentAnnouncements] = useState([]);
   const [monthlyCollections, setMonthlyCollections] = useState([]);
+  const [billings, setBillings] = useState([]);
+  const [paymentFilterYear, setPaymentFilterYear] = useState('');
+  const [paymentFilterMonth, setPaymentFilterMonth] = useState('');
 
   useEffect(() => {
     fetchDashboardData();
@@ -93,10 +96,13 @@ function DashboardHome() {
 
       // Fetch billing data
       const billingsSnapshot = await getDocs(collection(db, 'billing'));
-      const billings = billingsSnapshot.docs.map(doc => ({
+      const billingsData = billingsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      setBillings(billingsData);
+      
+      const billings = billingsData;
 
       // Calculate total collected (only paid billings)
       const paidBillings = billings.filter(billing => {
@@ -279,11 +285,74 @@ function DashboardHome() {
     },
   };
 
+  // Get available years from billings
+  const getAvailableYears = () => {
+    const years = new Set();
+    billings.forEach(billing => {
+      const billingDate = billing.createdAt || billing.date || billing.billingDate || billing.paymentDate || '';
+      if (billingDate) {
+        const year = new Date(billingDate).getFullYear().toString();
+        years.add(year);
+      }
+    });
+    return Array.from(years).sort((a, b) => b.localeCompare(a));
+  };
+
+  // Filter billings by month/year
+  const getFilteredBillings = () => {
+    let filtered = [...billings];
+
+    // Filter by year
+    if (paymentFilterYear) {
+      filtered = filtered.filter(billing => {
+        const billingDate = billing.createdAt || billing.date || billing.billingDate || billing.paymentDate || '';
+        if (billingDate) {
+          const year = new Date(billingDate).getFullYear().toString();
+          return year === paymentFilterYear;
+        }
+        return false;
+      });
+    }
+
+    // Filter by month
+    if (paymentFilterMonth) {
+      filtered = filtered.filter(billing => {
+        const billingDate = billing.createdAt || billing.date || billing.billingDate || billing.paymentDate || '';
+        if (billingDate) {
+          const month = String(new Date(billingDate).getMonth() + 1).padStart(2, '0');
+          return month === paymentFilterMonth;
+        }
+        return false;
+      });
+    }
+
+    return filtered;
+  };
+
+  // Calculate paid/unpaid based on filtered billings or household status
+  const filteredBillings = getFilteredBillings();
+  const hasFilters = paymentFilterYear || paymentFilterMonth;
+  
+  // If filters are applied, show bill counts; otherwise show household counts
+  const paidCount = hasFilters
+    ? filteredBillings.filter(billing => {
+        const status = billing.status || billing.paymentStatus || (billing.paid ? 'paid' : 'unpaid');
+        return status.toLowerCase() === 'paid';
+      }).length
+    : stats.paidHouseholds;
+  
+  const unpaidCount = hasFilters
+    ? filteredBillings.filter(billing => {
+        const status = billing.status || billing.paymentStatus || (billing.paid ? 'paid' : 'unpaid');
+        return status.toLowerCase() !== 'paid';
+      }).length
+    : stats.unpaidHouseholds;
+
   const paymentStatusData = {
     labels: ['Paid', 'Unpaid'],
     datasets: [
       {
-        data: [stats.paidHouseholds, stats.unpaidHouseholds],
+        data: [paidCount, unpaidCount],
         backgroundColor: [
           'rgba(34, 197, 94, 0.8)',
           'rgba(239, 68, 68, 0.8)'
@@ -475,9 +544,54 @@ function DashboardHome() {
             <h2 className="text-xl md:text-2xl font-bold text-gray-800">Payment Status</h2>
             <MdAccountBalance className="text-2xl text-[#006fba]" />
           </div>
-          {stats.paidHouseholds === 0 && stats.unpaidHouseholds === 0 ? (
+          
+          {/* Month and Year Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            {/* Filter by Year */}
+            <div className="relative">
+              <MdFilterList className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <select
+                value={paymentFilterYear}
+                onChange={(e) => setPaymentFilterYear(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#006fba] appearance-none bg-white"
+              >
+                <option value="">All Years</option>
+                {getAvailableYears().map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter by Month */}
+            <div className="relative">
+              <MdFilterList className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <select
+                value={paymentFilterMonth}
+                onChange={(e) => setPaymentFilterMonth(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#006fba] appearance-none bg-white"
+              >
+                <option value="">All Months</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+          </div>
+
+          {paidCount === 0 && unpaidCount === 0 ? (
             <div className="flex items-center justify-center h-64">
-              <p className="text-gray-400">No payment data available</p>
+              <p className="text-gray-400">
+                {hasFilters ? 'No payment data available for selected period' : 'No payment data available'}
+              </p>
             </div>
           ) : (
             <div className="h-64">
