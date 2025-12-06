@@ -120,6 +120,13 @@ function Household() {
       });
     }
 
+    // Sort alphabetically by Full Name
+    filtered.sort((a, b) => {
+      const nameA = (a.fullName || '').toLowerCase();
+      const nameB = (b.fullName || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
     setFilteredUsers(filtered);
     setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, filterStatus, users]);
@@ -199,12 +206,12 @@ function Household() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
-    // Special handling for middle name - convert to uppercase and limit to initials only
+    // Special handling for middle name - convert to uppercase and allow dots
     if (name === 'middleName') {
-      // Remove any non-letter characters and convert to uppercase
-      const initialsOnly = value.replace(/[^A-Za-z]/g, '').toUpperCase();
-      // Limit to 3 characters (for multiple initials like "J.M.")
-      const limitedValue = initialsOnly.slice(0, 3);
+      // Allow letters and dots only, convert to uppercase
+      const cleanedValue = value.replace(/[^A-Za-z.]/g, '').toUpperCase();
+      // Limit to 5 characters (to allow formats like "J.M.")
+      const limitedValue = cleanedValue.slice(0, 5);
       
       setFormData(prev => ({
         ...prev,
@@ -255,11 +262,14 @@ function Household() {
       newErrors.lastName = 'Last name cannot contain numbers';
     }
 
-    // Middle Name validation (initials only)
+    // Middle Name validation (initials with optional dots)
     if (formData.middleName.trim()) {
-      const middleNamePattern = /^[A-Z]{1,3}$/;
-      if (!middleNamePattern.test(formData.middleName.trim())) {
-        newErrors.middleName = 'Middle name should be initials only (1-3 letters)';
+      const trimmed = formData.middleName.trim();
+      // Allow: letters and dots in reasonable combinations (e.g., J, J., J.M, J.M.)
+      // Must contain at least one letter
+      const middleNamePattern = /^[A-Z]+\.?[A-Z]*\.?$/;
+      if (!middleNamePattern.test(trimmed) || trimmed.length > 5) {
+        newErrors.middleName = 'Middle name should be initials (e.g., J, J., or J.M.)';
       }
     }
 
@@ -1653,11 +1663,11 @@ function Household() {
                     name="middleName"
                     value={formData.middleName}
                     onChange={handleInputChange}
-                    maxLength={3}
+                    maxLength={5}
                     className={`w-full px-3 md:px-4 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.middleName ? 'border-red-500' : 'border-gray-300'
                     }`}
-                    placeholder="e.g., J or JM"
+                    placeholder="e.g., J or J. or J.M."
                     disabled={loading}
                     style={{ textTransform: 'uppercase' }}
                   />
@@ -1666,7 +1676,7 @@ function Household() {
                   )}
                   {!errors.middleName && (
                     <p className="text-xs text-gray-500 mt-1">
-                      Enter initials only (1-3 letters)
+                      Enter initials (e.g., J, J., or J.M.)
                     </p>
                   )}
                 </div>
@@ -2137,9 +2147,7 @@ function Household() {
                         <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
                           Status
                         </th>
-                        <th className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider rounded-tr-lg">
-                          Payment Date
-                        </th>
+                    
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -2176,13 +2184,7 @@ function Household() {
                                 {status.toLowerCase() === 'paid' ? '✓ Paid' : '⊘ Unpaid'}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {paymentDate ? new Date(paymentDate).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              }) : '-'}
-                            </td>
+                          
                           </tr>
                         );
                       })}
@@ -2356,7 +2358,7 @@ function Household() {
                               {currentReading}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {consumption}
+                              {currentReading - previousReading || 0} 
                             </td>
                             
                           </tr>
